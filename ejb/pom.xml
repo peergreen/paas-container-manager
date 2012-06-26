@@ -34,7 +34,7 @@
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
-  <artifactId>router-container-ejb</artifactId>
+  <artifactId>container-manager-ejb</artifactId>
   <name>JPaaS :: Container Manager : EJB</name>
   <packaging>ejb</packaging>
 
@@ -50,7 +50,7 @@
     </dependency>
     <dependency>
       <groupId>org.ow2.jonas.jpaas</groupId>
-      <artifactId>router-container-api</artifactId>
+      <artifactId>container-manager-api</artifactId>
       <version>1.0.0-SNAPSHOT</version>
     </dependency>
   </dependencies>
