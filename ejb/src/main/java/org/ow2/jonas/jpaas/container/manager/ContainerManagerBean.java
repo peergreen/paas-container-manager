@@ -34,7 +34,7 @@ import javax.ejb.Remote;
 import javax.ejb.Stateless;
 import java.net.URL;
 
-@Stateless(mappedName="RouterManagerBean")
+@Stateless(mappedName="ContainerManagerBean")
 @Local(ContainerManagerLocal.class)
 @Remote(ContainerManagerRemote.class)
 public class ContainerManagerBean {
@@ -44,51 +44,51 @@ public class ContainerManagerBean {
 
   public void createContainer(String containerName, String paasAgentName, String paasConfigurationName, Integer portRange) throws ContainerManagerBeanException {
      //TODO
-    System.out.println("JPAAS-ROUTER-MANAGER / createContainer called");
+    System.out.println("JPAAS-CONTAINER-MANAGER / createContainer called");
   }
 
   public void removeContainer(String containerName) throws ContainerManagerBeanException {
      //TODO
-    System.out.println("JPAAS-ROUTER-MANAGER / removeContainer called");
+    System.out.println("JPAAS-CONTAINER-MANAGER / removeContainer called");
   }
 
   public void startContainer(String containerName) throws ContainerManagerBeanException {
      //TODO
-    System.out.println("JPAAS-ROUTER-MANAGER / startContainer called");
+    System.out.println("JPAAS-CONTAINER-MANAGER / startContainer called");
   }
 
   public void stopContainer(String containerName) throws ContainerManagerBeanException {
      //TODO
-    System.out.println("JPAAS-ROUTER-MANAGER / stopContainer called");
+    System.out.println("JPAAS-CONTAINER-MANAGER / stopContainer called");
   }
 
   public void deploy(String containerName, URL deployable) throws ContainerManagerBeanException {
      //TODO
-    System.out.println("JPAAS-ROUTER-MANAGER / deploy called");
+    System.out.println("JPAAS-CONTAINER-MANAGER / deploy called");
   }
 
   public void undeploy(String containerName, URL deployable) throws ContainerManagerBeanException {
      //TODO
-    System.out.println("JPAAS-ROUTER-MANAGER / undeploy called");
+    System.out.println("JPAAS-CONTAINER-MANAGER / undeploy called");
   }
 
   public void createConnector(String containerName, String connectorName, String connectorConf) throws ContainerManagerBeanException {
      //TODO
-    System.out.println("JPAAS-ROUTER-MANAGER / createConnector called");
+    System.out.println("JPAAS-CONTAINER-MANAGER / createConnector called");
   }
 
   public void removeConnector(String containerName, String connectorName) throws ContainerManagerBeanException {
      //TODO
-    System.out.println("JPAAS-ROUTER-MANAGER / removeConnector called");
+    System.out.println("JPAAS-CONTAINER-MANAGER / removeConnector called");
   }
 
   public void createDatasource(String containerName, String datasourceName, String datasourceConf) throws ContainerManagerBeanException {
      //TODO
-    System.out.println("JPAAS-ROUTER-MANAGER / createDatasource called");
+    System.out.println("JPAAS-CONTAINER-MANAGER / createDatasource called");
   }
   public void removeDatasource(String containerName, String datasourceName) throws ContainerManagerBeanException {
      //TODO
-    System.out.println("JPAAS-ROUTER-MANAGER / removeDatasource called");
+    System.out.println("JPAAS-CONTAINER-MANAGER / removeDatasource called");
   }
 
 }
