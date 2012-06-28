@@ -22,7 +22,7 @@
  * $Id$
  * --------------------------------------------------------------------------
  */
-package org.ow2.jonas.jpaas.container.manager;
+package org.ow2.jonas.jpaas.container.manager.bean;
 
 
 import org.ow2.jonas.jpaas.container.manager.api.ContainerManagerBeanException;
