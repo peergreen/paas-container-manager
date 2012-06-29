@@ -27,7 +27,7 @@ package org.ow2.jonas.jpaas.container.manager.api;
 
 import java.net.URL;
 
-public interface ContainerManagerLocal {
+public interface ContainerManager {
 
 
   public void createContainer(String containerName, String paasAgentName, String paasConfigurationName, Integer portRange) throws ContainerManagerBeanException;

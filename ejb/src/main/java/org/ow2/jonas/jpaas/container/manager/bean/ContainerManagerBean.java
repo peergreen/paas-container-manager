@@ -24,10 +24,8 @@
  */
 package org.ow2.jonas.jpaas.container.manager.bean;
 
-
+import org.ow2.jonas.jpaas.container.manager.api.ContainerManager;
 import org.ow2.jonas.jpaas.container.manager.api.ContainerManagerBeanException;
-import org.ow2.jonas.jpaas.container.manager.api.ContainerManagerLocal;
-import org.ow2.jonas.jpaas.container.manager.api.ContainerManagerRemote;
 
 import javax.ejb.Local;
 import javax.ejb.Remote;
@@ -35,9 +33,9 @@ import javax.ejb.Stateless;
 import java.net.URL;
 
 @Stateless(mappedName="ContainerManagerBean")
-@Local(ContainerManagerLocal.class)
-@Remote(ContainerManagerRemote.class)
-public class ContainerManagerBean {
+@Local(ContainerManager.class)
+@Remote(ContainerManager.class)
+public class ContainerManagerBean implements  ContainerManager {
 
   public ContainerManagerBean() {
   }
