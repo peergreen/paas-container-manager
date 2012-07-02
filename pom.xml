@@ -42,6 +42,14 @@
 
   <description>JPaaS :: Container Manager</description>
 
+  <properties>
+    <jonas.agent.version>5.3.0-M7-SNAPSHOT</jonas.agent.version>
+    <jersey.rest.client>1.9.1</jersey.rest.client>
+    <jpaas.catalog.version>1.0.0-SNAPSHOT</jpaas.catalog.version>
+    <jpaas.sr.version>1.1.1-SNAPSHOT</jpaas.sr.version>
+    <easybeans.annotations.version>2.0.0-M1</easybeans.annotations.version>
+   </properties>
+  
   <developers/>
   <licenses>
     <license>
@@ -52,7 +60,7 @@
 
   <modules>
     <module>ejb</module>
-	  <module>api</module>
+	<module>api</module>
   </modules>
 
 </project>
