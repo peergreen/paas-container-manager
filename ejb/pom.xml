@@ -36,7 +36,7 @@
 
   <artifactId>container-manager-ejb</artifactId>
   <name>JPaaS :: Container Manager : EJB</name>
-  <packaging>ejb</packaging>
+  <packaging>bundle</packaging>
 
   <description>jPaaS :: Container Manager : EJB</description>
 
@@ -78,6 +78,7 @@
       <artifactId>easybeans-osgi-annotations</artifactId>
       <version>${easybeans.annotations.version}</version>
     </dependency>
+
   </dependencies>
 
   <build>
@@ -91,9 +92,17 @@
       </plugin>
 
       <plugin>
-        <artifactId>maven-ejb-plugin</artifactId>
+        <groupId>org.apache.felix</groupId>
+        <artifactId>maven-bundle-plugin</artifactId>
+        <version>2.2.0</version>
+        <extensions>true</extensions>
+        <goals>
+          <goal>bundle</goal>
+        </goals>
         <configuration>
-          <ejbVersion>3.0</ejbVersion>
+          <instructions>
+            <_include>-target/classes/META-INF/${project.artifactId}.bnd</_include>
+          </instructions>
         </configuration>
       </plugin>
     </plugins>

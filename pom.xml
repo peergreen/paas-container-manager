@@ -60,7 +60,6 @@
 
   <modules>
     <module>ejb</module>
-	<module>api</module>
   </modules>
 
 </project>

@@ -22,7 +22,10 @@
  * $Id$
  * --------------------------------------------------------------------------
  */
-package org.ow2.jonas.jpaas.container.manager;
+package org.ow2.jonas.jpaas.container.manager.bean;
+
+import org.ow2.jonas.jpaas.container.manager.api.ContainerManager;
+import org.ow2.jonas.jpaas.container.manager.api.ContainerManagerBeanException;
 
 import org.ow2.easybeans.osgi.annotation.OSGiResource;
 import org.ow2.jonas.jpaas.catalog.facade.api.IPaasCatalogFacade;
@@ -58,10 +61,10 @@ import java.io.InputStream;
 import java.net.URL;
 import java.util.List;
 
-@Stateless(mappedName = "ContainerManagerBean")
-@Local(ContainerManagerLocal.class)
-@Remote(ContainerManagerRemote.class)
-public class ContainerManagerBean {
+@Stateless(mappedName="ContainerManagerBean")
+@Local(ContainerManager.class)
+@Remote(ContainerManager.class)
+public class ContainerManagerBean implements  ContainerManager {
 
 	/**
 	 * The logger
