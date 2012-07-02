@@ -49,11 +49,6 @@
        <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>org.ow2.jonas.jpaas</groupId>
-      <artifactId>container-manager-api</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
       <groupId>org.ow2.jonas.agent</groupId>
       <artifactId>agent-management-api</artifactId>
       <version>${jonas.agent.version}</version>
