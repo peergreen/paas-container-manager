@@ -28,8 +28,8 @@ import org.ow2.jonas.jpaas.container.manager.api.ContainerManager;
 import org.ow2.jonas.jpaas.container.manager.api.ContainerManagerBeanException;
 
 import org.ow2.easybeans.osgi.annotation.OSGiResource;
-import org.ow2.jonas.jpaas.catalog.facade.api.IPaasCatalogFacade;
-import org.ow2.jonas.jpaas.catalog.facade.object.PaasConfiguration;
+import org.ow2.jonas.jpaas.catalog.api.IPaasCatalogFacade;
+import org.ow2.jonas.jpaas.catalog.api.PaasConfiguration;
 import org.ow2.jonas.jpaas.sr.facade.api.ISrPaasJonasContainerFacade;
 import org.ow2.jonas.jpaas.sr.facade.api.ISrPaasAgentFacade;
 import org.ow2.jonas.jpaas.sr.facade.api.ISrPaasResourcePaasAgentLink;
