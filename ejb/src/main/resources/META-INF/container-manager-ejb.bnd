@@ -1,4 +1,11 @@
-Bundle-Activator org.ow2.easybeans.osgi.ejbjar.Activator
+Bundle-Activator      org.ow2.easybeans.osgi.ejbjar.Activator
+
 DynamicImport-Package *
-Export-Package org.ow2.jonas.jpaas.container.manager.api
-Private-Package org.ow2.jonas.jpaas.container.manager.bean
+
+Import-Package        javax.ws.rs.core;version="[0,2)", *
+
+Export-Package        org.ow2.jonas.jpaas.container.manager.api
+
+Private-Package       org.ow2.jonas.jpaas.container.manager.bean
+
+Embed-Dependency      jersey-client, jersey-core, agent-management-api
