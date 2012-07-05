@@ -30,8 +30,6 @@ import org.ow2.jonas.jpaas.container.manager.api.ContainerManagerBeanException;
 import org.ow2.easybeans.osgi.annotation.OSGiResource;
 import org.ow2.jonas.jpaas.catalog.api.IPaasCatalogFacade;
 import org.ow2.jonas.jpaas.catalog.api.PaasConfiguration;
-import org.ow2.jonas.jpaas.container.manager.api.ContainerManagerBeanException;
-import org.ow2.jonas.jpaas.container.manager.api.ContainerManager;
 import org.ow2.jonas.jpaas.sr.facade.api.ISrPaasJonasContainerFacade;
 import org.ow2.jonas.jpaas.sr.facade.api.ISrPaasAgentFacade;
 import org.ow2.jonas.jpaas.sr.facade.api.ISrPaasResourcePaasAgentLink;
@@ -265,7 +263,7 @@ public class ContainerManagerBean implements  ContainerManager {
 	public void removeContainer(String containerName)
 			throws ContainerManagerBeanException {
 		
-		 logger.info("Container '" + containerName + "' starting ....");
+		 logger.info("Container '" + containerName + "' deleting ....");
 	        
 		 // get the container from SR
 		 JonasVO jonasContainer = srJonasContainerEjb.getJonasContainer(containerName);
@@ -431,6 +429,7 @@ public class ContainerManagerBean implements  ContainerManager {
 	        logger.info("Container '" + server.getName() + "' stopped. Status=" + server.getStatus());
 	}
 
+	
 	public void deploy(String containerName, URL deployable)
 			throws ContainerManagerBeanException {
 		// TODO
