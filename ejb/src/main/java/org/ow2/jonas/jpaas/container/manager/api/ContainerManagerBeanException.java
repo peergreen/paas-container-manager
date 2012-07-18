@@ -26,10 +26,14 @@ package org.ow2.jonas.jpaas.container.manager.api;
 
 public class ContainerManagerBeanException extends Exception {
 
-   public ContainerManagerBeanException() {}
+    public ContainerManagerBeanException() {}
 
-   public ContainerManagerBeanException(String message) {
-     super(message);
-   }
+    public ContainerManagerBeanException(String message) {
+        super(message);
+    }
+
+    public ContainerManagerBeanException(String message, Throwable t) {
+        super(message,t);
+    }
 
 }

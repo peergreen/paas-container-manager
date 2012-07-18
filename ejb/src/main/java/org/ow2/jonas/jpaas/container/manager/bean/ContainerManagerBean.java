@@ -24,6 +24,7 @@
  */
 package org.ow2.jonas.jpaas.container.manager.bean;
 
+import org.ow2.jonas.jpaas.catalog.api.PaasCatalogException;
 import org.ow2.jonas.jpaas.container.manager.api.ContainerManager;
 import org.ow2.jonas.jpaas.container.manager.api.ContainerManagerBeanException;
 
@@ -162,8 +163,14 @@ public class ContainerManagerBean implements  ContainerManager {
         }
 
         // Get configuration from catalog
-        PaasConfiguration containerConf = catalogEjb
-                .getPaasConfiguration(paasConfigurationName);
+        PaasConfiguration containerConf = null;
+        try {
+            containerConf = catalogEjb
+                    .getPaasConfiguration(paasConfigurationName);
+        } catch (PaasCatalogException e) {
+            throw new ContainerManagerBeanException("Error to find the PaaS Configuration named " +
+                    paasConfigurationName + ".", e);
+        }
         if (!containerConf.getType().equals(PAAS_TYPE)) {
             throw new ContainerManagerBeanException("Invalid paas type : "
                     + containerConf.getType().equals(PAAS_TYPE) + " - expected : "
