@@ -63,497 +63,497 @@ import java.util.List;
 @Remote(ContainerManager.class)
 public class ContainerManagerBean implements  ContainerManager {
 
-	/**
-	 * The logger
-	 */
-	private Log logger = LogFactory.getLog(ContainerManagerBean.class);
+    /**
+     * The logger
+     */
+    private Log logger = LogFactory.getLog(ContainerManagerBean.class);
 
-	/**
-	 * The context of the application
-	 */
-	private static String CONTEXT = "jonas-api";
+    /**
+     * The context of the application
+     */
+    private static String CONTEXT = "jonas-api";
 
-	/**
-	 * Http accepted status
-	 */
-	private static final int HTTP_STATUS_ACCEPTED = 202;
+    /**
+     * Http accepted status
+     */
+    private static final int HTTP_STATUS_ACCEPTED = 202;
 
-	/**
-	 * Http Ok status
-	 */
-	private static final int HTTP_STATUS_OK = 200;
+    /**
+     * Http Ok status
+     */
+    private static final int HTTP_STATUS_OK = 200;
 
-	/**
-	 * Http no content status
-	 */
-	private static final int HTTP_STATUS_NO_CONTENT = 204;
+    /**
+     * Http no content status
+     */
+    private static final int HTTP_STATUS_NO_CONTENT = 204;
 
-	/**
-	 * Expected paas type
-	 */
-	private static final String PAAS_TYPE = "container";
+    /**
+     * Expected paas type
+     */
+    private static final String PAAS_TYPE = "container";
 
-	/**
-	 * Expected paas subtype
-	 */
-	private static final String PAAS_SUB_TYPE = "jonas";
-	
-	/**
-	 * Sleeping period for async operation
-	 */
-	private static final int SLEEPING_PERIOD = 1000;
-	
-	/**
-	 * REST request type
-	 */
-	private enum REST_TYPE {
-		PUT,POST,GET,DELETE
-	}
+    /**
+     * Expected paas subtype
+     */
+    private static final String PAAS_SUB_TYPE = "jonas";
+
+    /**
+     * Sleeping period for async operation
+     */
+    private static final int SLEEPING_PERIOD = 1000;
+
+    /**
+     * REST request type
+     */
+    private enum REST_TYPE {
+        PUT,POST,GET,DELETE
+    }
 
 
-	/**
-	 * Catalog facade
-	 */
-	@OSGiResource
-	private IPaasCatalogFacade catalogEjb;
+    /**
+     * Catalog facade
+     */
+    @OSGiResource
+    private IPaasCatalogFacade catalogEjb;
 
-	/**
-	 * SR facade jonas container
-	 */
-	@OSGiResource
-	private ISrPaasJonasContainerFacade srJonasContainerEjb;
-	
-	/**
-	 * SR facade agent
-	 */
-	@OSGiResource
-	private ISrPaasAgentFacade srAgentEjb;
+    /**
+     * SR facade jonas container
+     */
+    @OSGiResource
+    private ISrPaasJonasContainerFacade srJonasContainerEjb;
 
-	/**
-	 * SR facade jonas - agent link
-	 */
-	@OSGiResource
-	private ISrPaasResourcePaasAgentLink srJonasAgentLinkEjb;
+    /**
+     * SR facade agent
+     */
+    @OSGiResource
+    private ISrPaasAgentFacade srAgentEjb;
 
-	/**
-	 * Constructor
-	 */
-	public ContainerManagerBean() {
-	}
+    /**
+     * SR facade jonas - agent link
+     */
+    @OSGiResource
+    private ISrPaasResourcePaasAgentLink srJonasAgentLinkEjb;
 
-	/**
-	 * Create a new JOnAS container
-	 * @param containerName
-	 * @param paasAgentName
-	 * @param paasConfigurationName
-	 * @param portRange
-	 * @throws ContainerManagerBeanException
-	 */
-	public void createContainer(String containerName, String paasAgentName,
-			String paasConfigurationName, Integer portRange)
-			throws ContainerManagerBeanException {
-		
+    /**
+     * Constructor
+     */
+    public ContainerManagerBean() {
+    }
+
+    /**
+     * Create a new JOnAS container
+     * @param containerName
+     * @param paasAgentName
+     * @param paasConfigurationName
+     * @param portRange
+     * @throws ContainerManagerBeanException
+     */
+    public void createContainer(String containerName, String paasAgentName,
+            String paasConfigurationName, Integer portRange)
+            throws ContainerManagerBeanException {
+
         logger.info("Container '" + containerName + "' creation ....");
 
-		// Get the agent 
-		PaasAgentVO agent = srAgentEjb.getAgent(paasAgentName);
-		if (agent == null) {
-			throw new ContainerManagerBeanException("Unable to get the agent '" + paasAgentName + "' !");
-		}
-		
-		// Get configuration from catalog
-		PaasConfiguration containerConf = catalogEjb
-				.getPaasConfiguration(paasConfigurationName);
-		if (!containerConf.getType().equals(PAAS_TYPE)) {
-			throw new ContainerManagerBeanException("Invalid paas type : "
-					+ containerConf.getType().equals(PAAS_TYPE) + " - expected : "
-					+ PAAS_TYPE);
-		}
-		if (!containerConf.getSubType().equals(PAAS_SUB_TYPE)) {
-			throw new ContainerManagerBeanException("Invalid paas sub type : "
-					+ containerConf.getType().equals(PAAS_SUB_TYPE) + " - expected : "
-					+ PAAS_SUB_TYPE);
-		}
+        // Get the agent
+        PaasAgentVO agent = srAgentEjb.getAgent(paasAgentName);
+        if (agent == null) {
+            throw new ContainerManagerBeanException("Unable to get the agent '" + paasAgentName + "' !");
+        }
+
+        // Get configuration from catalog
+        PaasConfiguration containerConf = catalogEjb
+                .getPaasConfiguration(paasConfigurationName);
+        if (!containerConf.getType().equals(PAAS_TYPE)) {
+            throw new ContainerManagerBeanException("Invalid paas type : "
+                    + containerConf.getType().equals(PAAS_TYPE) + " - expected : "
+                    + PAAS_TYPE);
+        }
+        if (!containerConf.getSubType().equals(PAAS_SUB_TYPE)) {
+            throw new ContainerManagerBeanException("Invalid paas sub type : "
+                    + containerConf.getType().equals(PAAS_SUB_TYPE) + " - expected : "
+                    + PAAS_SUB_TYPE);
+        }
 
         // Create the container in the SR
         if (srJonasContainerEjb.getJonasContainer(containerName) != null) {
-			throw new ContainerManagerBeanException("JOnAS container '" + containerName + "' already exist!");
+            throw new ContainerManagerBeanException("JOnAS container '" + containerName + "' already exist!");
         }
         JonasVO jonasContainer = new JonasVO();
         jonasContainer.setName(containerName);
         jonasContainer.setState("Init");
         jonasContainer.setProfile(containerConf.getName());
         srJonasContainerEjb.createJonasContainer(jonasContainer);
-        
+
         // if the link doesn't exist between agent and jonas, create it
         boolean alreadyExist = false;
         List <PaasResourceVO> paasResources = srJonasAgentLinkEjb.findPaasResourcesByAgent(paasAgentName);
         for (PaasResourceVO paasResourceVO : paasResources) {
-	        if (paasResourceVO instanceof JonasVO) {
-	        	JonasVO jonasResourceVO = (JonasVO) paasResourceVO;
-	        	if (jonasResourceVO.getName().equals(containerName)) {
-	        		logger.debug("Link between container '"  + containerName + "' and agent '" + paasAgentName + "' already exist!");
-	        		alreadyExist = true;
-	        		break;
-	        	}   	
-	        }
+            if (paasResourceVO instanceof JonasVO) {
+                JonasVO jonasResourceVO = (JonasVO) paasResourceVO;
+                if (jonasResourceVO.getName().equals(containerName)) {
+                    logger.debug("Link between container '"  + containerName + "' and agent '" + paasAgentName + "' already exist!");
+                    alreadyExist = true;
+                    break;
+                }
+            }
         }
         if (!alreadyExist) {
-        	srJonasAgentLinkEjb.addPaasResourceAgentLink(containerName, paasAgentName);	
+            srJonasAgentLinkEjb.addPaasResourceAgentLink(containerName, paasAgentName);
         }
-        
-		// TODO use port range to customize topology file
 
-		// Load the topology file
+        // TODO use port range to customize topology file
+
+        // Load the topology file
         String topology;
         try {
-        	topology = getTopologyFromFile(containerConf.getSpecificConfig());
+            topology = getTopologyFromFile(containerConf.getSpecificConfig());
         } catch (Exception e) {
-        	throw new ContainerManagerBeanException("Error when reading JOnAS topology file '" + containerConf.getSpecificConfig() + "' for paas conf '" + paasConfigurationName +"' - e=" + e);
+            throw new ContainerManagerBeanException("Error when reading JOnAS topology file '" + containerConf.getSpecificConfig() + "' for paas conf '" + paasConfigurationName +"' - e=" + e);
         }
-        
-		// Create the REST request      
-        Task task = sendRequestWithReply(
-        		REST_TYPE.PUT,
-        		getUrl(agent.getApiUrl(), "/server/" + containerName), 
-        		topology, 
-        		Task.class);
-      
-		Long idTask = task.getId();
 
-		// Wait until async task is completed
-		while (!task.getStatus().equals(Status.SUCCESS.toString())) {
-			
-			if (task.getStatus().equals(Status.ERROR.toString())) {
-				throw new ContainerManagerBeanException("Error on JOnAS agent task, id=" + task.getId());
-			}
-			try {
-	            Thread.sleep(SLEEPING_PERIOD);
+        // Create the REST request
+        Task task = sendRequestWithReply(
+                REST_TYPE.PUT,
+                getUrl(agent.getApiUrl(), "/server/" + containerName),
+                topology,
+                Task.class);
+
+        Long idTask = task.getId();
+
+        // Wait until async task is completed
+        while (!task.getStatus().equals(Status.SUCCESS.toString())) {
+
+            if (task.getStatus().equals(Status.ERROR.toString())) {
+                throw new ContainerManagerBeanException("Error on JOnAS agent task, id=" + task.getId());
+            }
+            try {
+                Thread.sleep(SLEEPING_PERIOD);
             } catch (InterruptedException e) {
             }
-			
-	        task = sendRequestWithReply(
-	        			REST_TYPE.GET,
-	        			getUrl(agent.getApiUrl(), "/task/" + String.valueOf(idTask)), 
-	        			null, 
-	        			Task.class);
 
-		}
+            task = sendRequestWithReply(
+                    REST_TYPE.GET,
+                    getUrl(agent.getApiUrl(), "/task/" + String.valueOf(idTask)),
+                    null,
+                    Task.class);
 
-		// check that the status of the new container is ok
-		Server server = sendRequestWithReply(
-    			REST_TYPE.GET,
-    			getUrl(agent.getApiUrl(), "/server/" + containerName), 
-    			null, 
-    			Server.class);
-		
-		// update state in sr
+        }
+
+        // check that the status of the new container is ok
+        Server server = sendRequestWithReply(
+                REST_TYPE.GET,
+                getUrl(agent.getApiUrl(), "/server/" + containerName),
+                null,
+                Server.class);
+
+        // update state in sr
         jonasContainer.setState(server.getStatus());
         srJonasContainerEjb.updateJonasContainer(jonasContainer);
 
         logger.info("Container '" + server.getName() + "' created. Status=" + server.getStatus());
-		
-	}
 
-	/**
-	 * Remove a JOnAS container
-	 * @param containerName
-	 * @throws ContainerManagerBeanException
-	 */
-	public void removeContainer(String containerName)
-			throws ContainerManagerBeanException {
-		
-		 logger.info("Container '" + containerName + "' deleting ....");
-	        
-		 // get the container from SR
-		 JonasVO jonasContainer = srJonasContainerEjb.getJonasContainer(containerName);
-		 if (jonasContainer == null) {
-			 throw new ContainerManagerBeanException("JOnAS container '" + containerName + "' doesn't exist !");
-		 }
-		 jonasContainer.setState("DELETING");
-		 srJonasContainerEjb.updateJonasContainer(jonasContainer);
-	        
-		 // Get the agent 
-		 PaasAgentVO agent = srJonasAgentLinkEjb.findAgentByPaasResource(containerName);
-			
-		 if (agent == null) {
-			 throw new ContainerManagerBeanException("Unable to get the agent for container '" + containerName + "' !");
-		 }
-		 
-		// Create the REST request      
-		 sendRequestWithReply(
-	        		REST_TYPE.DELETE,
-	        		getUrl(agent.getApiUrl(), "/server/" + containerName), 
-	        		null, 
-	        		null);
-		 
-		 // update state in sr
-		 srJonasContainerEjb.deleteJonasContainer(containerName);
+    }
 
-		 logger.info("Container '" + containerName + "' deleted.");		 
-		 
-	}
+    /**
+     * Remove a JOnAS container
+     * @param containerName
+     * @throws ContainerManagerBeanException
+     */
+    public void removeContainer(String containerName)
+            throws ContainerManagerBeanException {
 
-	/**
-	 * Start a JOnAS container
-	 * @param containerName
-	 * @throws ContainerManagerBeanException
-	 */
-	public void startContainer(String containerName)
-			throws ContainerManagerBeanException {
+        logger.info("Container '" + containerName + "' deleting ....");
 
-        logger.info("Container '" + containerName + "' starting ....");
-        
         // get the container from SR
         JonasVO jonasContainer = srJonasContainerEjb.getJonasContainer(containerName);
         if (jonasContainer == null) {
-			throw new ContainerManagerBeanException("JOnAS container '" + containerName + "' doesn't exist !");
+            throw new ContainerManagerBeanException("JOnAS container '" + containerName + "' doesn't exist !");
+        }
+        jonasContainer.setState("DELETING");
+        srJonasContainerEjb.updateJonasContainer(jonasContainer);
+
+        // Get the agent
+        PaasAgentVO agent = srJonasAgentLinkEjb.findAgentByPaasResource(containerName);
+
+        if (agent == null) {
+            throw new ContainerManagerBeanException("Unable to get the agent for container '" + containerName + "' !");
+        }
+
+        // Create the REST request
+        sendRequestWithReply(
+                REST_TYPE.DELETE,
+                getUrl(agent.getApiUrl(), "/server/" + containerName),
+                null,
+                null);
+
+        // update state in sr
+        srJonasContainerEjb.deleteJonasContainer(containerName);
+
+        logger.info("Container '" + containerName + "' deleted.");
+
+    }
+
+    /**
+     * Start a JOnAS container
+     * @param containerName
+     * @throws ContainerManagerBeanException
+     */
+    public void startContainer(String containerName)
+            throws ContainerManagerBeanException {
+
+        logger.info("Container '" + containerName + "' starting ....");
+
+        // get the container from SR
+        JonasVO jonasContainer = srJonasContainerEjb.getJonasContainer(containerName);
+        if (jonasContainer == null) {
+            throw new ContainerManagerBeanException("JOnAS container '" + containerName + "' doesn't exist !");
         }
         jonasContainer.setState("STARTING");
         srJonasContainerEjb.updateJonasContainer(jonasContainer);
-        
-		// Get the agent 
-		PaasAgentVO agent = srJonasAgentLinkEjb.findAgentByPaasResource(containerName);
-		
-		if (agent == null) {
-			throw new ContainerManagerBeanException("Unable to get the agent for container '" + containerName + "' !");
-		}
-				
-		// Create the REST request      
-        Task task = sendRequestWithReply(
-        		REST_TYPE.POST,
-        		getUrl(agent.getApiUrl(), "/server/" + containerName + "/action/start"), 
-        		null, 
-        		Task.class);
-        
-		Long idTask = task.getId();
 
-        
+        // Get the agent
+        PaasAgentVO agent = srJonasAgentLinkEjb.findAgentByPaasResource(containerName);
+
+        if (agent == null) {
+            throw new ContainerManagerBeanException("Unable to get the agent for container '" + containerName + "' !");
+        }
+
+        // Create the REST request
+        Task task = sendRequestWithReply(
+                REST_TYPE.POST,
+                getUrl(agent.getApiUrl(), "/server/" + containerName + "/action/start"),
+                null,
+                Task.class);
+
+        Long idTask = task.getId();
+
+
         // Wait until async task is completed
         while (!task.getStatus().equals(Status.SUCCESS.toString())) {
-     			
-        	if (task.getStatus().equals(Status.ERROR.toString())) {
-        		throw new ContainerManagerBeanException("Error on JOnAS agent task, id=" + task.getId());
-        	}
-        	try {
-        		Thread.sleep(SLEEPING_PERIOD);
-        	} catch (InterruptedException e) {
-        	}
-     			
-        	task = sendRequestWithReply(
-        			REST_TYPE.GET,
-        			getUrl(agent.getApiUrl(), "/task/" + String.valueOf(idTask)), 
-        			null, 
-        			Task.class);
-     		}
+
+            if (task.getStatus().equals(Status.ERROR.toString())) {
+                throw new ContainerManagerBeanException("Error on JOnAS agent task, id=" + task.getId());
+            }
+            try {
+                Thread.sleep(SLEEPING_PERIOD);
+            } catch (InterruptedException e) {
+            }
+
+            task = sendRequestWithReply(
+                    REST_TYPE.GET,
+                    getUrl(agent.getApiUrl(), "/task/" + String.valueOf(idTask)),
+                    null,
+                    Task.class);
+        }
 
         // check that the status of the new container is ok
         Server server = sendRequestWithReply(
-        		REST_TYPE.GET,
-        		getUrl(agent.getApiUrl(), "/server/" + containerName), 
-        		null, 
-        		Server.class);
-        
-		// update state in sr
+                REST_TYPE.GET,
+                getUrl(agent.getApiUrl(), "/server/" + containerName),
+                null,
+                Server.class);
+
+        // update state in sr
         jonasContainer.setState(server.getStatus());
         srJonasContainerEjb.updateJonasContainer(jonasContainer);
 
         logger.info("Container '" + server.getName() + "' started. Status=" + server.getStatus());
-		
-	}
 
-	/**
-	 * Stop a JOnAS container
-	 * @param containerName
-	 * @throws ContainerManagerBeanException
-	 */
-	public void stopContainer(String containerName)
-			throws ContainerManagerBeanException {
-		
-		 logger.info("Container '" + containerName + "' stopping ....");
-	        
-	        // Get the container from SR
-	        JonasVO jonasContainer = srJonasContainerEjb.getJonasContainer(containerName);
-	        if (jonasContainer == null) {
-				throw new ContainerManagerBeanException("JOnAS container '" + containerName + "' doesn't exist !");
-	        }
-	        jonasContainer.setState("STOPPING");
-	        srJonasContainerEjb.updateJonasContainer(jonasContainer);
-	        
-			// Get the agent 
-			PaasAgentVO agent = srJonasAgentLinkEjb.findAgentByPaasResource(containerName);
-			
-			if (agent == null) {
-				throw new ContainerManagerBeanException("Unable to get the agent for container '" + containerName + "' !");
-			}
-					
-			// Create the REST request      
-	        Task task = sendRequestWithReply(
-	        		REST_TYPE.POST,
-	        		getUrl(agent.getApiUrl(), "/server/" + containerName + "/action/stop"), 
-	        		null, 
-	        		Task.class);
-	        
-			Long idTask = task.getId();
+    }
 
-	        
-	        // Wait until async task is completed
-	        while (!task.getStatus().equals(Status.SUCCESS.toString())) {
-	     			
-	        	if (task.getStatus().equals(Status.ERROR.toString())) {
-	        		throw new ContainerManagerBeanException("Error on JOnAS agent task, id=" + task.getId());
-	        	}
-	        	try {
-	        		Thread.sleep(SLEEPING_PERIOD);
-	        	} catch (InterruptedException e) {
-	        	}
-	     			
-	        	task = sendRequestWithReply(
-	        			REST_TYPE.GET,
-	        			getUrl(agent.getApiUrl(), "/task/" + String.valueOf(idTask)), 
-	        			null, 
-	        			Task.class);
-	     		}
+    /**
+     * Stop a JOnAS container
+     * @param containerName
+     * @throws ContainerManagerBeanException
+     */
+    public void stopContainer(String containerName)
+            throws ContainerManagerBeanException {
 
-	        // check that the status of the new container is ok
-	        Server server = sendRequestWithReply(
-	        		REST_TYPE.GET,
-	        		getUrl(agent.getApiUrl(), "/server/" + containerName), 
-	        		null, 
-	        		Server.class);
-	        
-			// update state in sr
-	        jonasContainer.setState(server.getStatus());
-	        srJonasContainerEjb.updateJonasContainer(jonasContainer);
+        logger.info("Container '" + containerName + "' stopping ....");
 
-	        logger.info("Container '" + server.getName() + "' stopped. Status=" + server.getStatus());
-	}
+        // Get the container from SR
+        JonasVO jonasContainer = srJonasContainerEjb.getJonasContainer(containerName);
+        if (jonasContainer == null) {
+            throw new ContainerManagerBeanException("JOnAS container '" + containerName + "' doesn't exist !");
+        }
+        jonasContainer.setState("STOPPING");
+        srJonasContainerEjb.updateJonasContainer(jonasContainer);
 
-	
-	public void deploy(String containerName, URL deployable)
-			throws ContainerManagerBeanException {
-		// TODO
-		System.out.println("JPAAS-CONTAINER-MANAGER / deploy called");
-	}
+        // Get the agent
+        PaasAgentVO agent = srJonasAgentLinkEjb.findAgentByPaasResource(containerName);
 
-	public void undeploy(String containerName, URL deployable)
-			throws ContainerManagerBeanException {
-		// TODO
-		System.out.println("JPAAS-CONTAINER-MANAGER / undeploy called");
-	}
+        if (agent == null) {
+            throw new ContainerManagerBeanException("Unable to get the agent for container '" + containerName + "' !");
+        }
 
-	public void createConnector(String containerName, String connectorName,
-			String connectorConf) throws ContainerManagerBeanException {
-		// TODO
-		System.out.println("JPAAS-CONTAINER-MANAGER / createConnector called");
-	}
+        // Create the REST request
+        Task task = sendRequestWithReply(
+                REST_TYPE.POST,
+                getUrl(agent.getApiUrl(), "/server/" + containerName + "/action/stop"),
+                null,
+                Task.class);
 
-	public void removeConnector(String containerName, String connectorName)
-			throws ContainerManagerBeanException {
-		// TODO
-		System.out.println("JPAAS-CONTAINER-MANAGER / removeConnector called");
-	}
+        Long idTask = task.getId();
 
-	public void createDatasource(String containerName, String datasourceName,
-			String datasourceConf) throws ContainerManagerBeanException {
-		// TODO
-		System.out.println("JPAAS-CONTAINER-MANAGER / createDatasource called");
-	}
 
-	public void removeDatasource(String containerName, String datasourceName)
-			throws ContainerManagerBeanException {
-		// TODO
-		System.out.println("JPAAS-CONTAINER-MANAGER / removeDatasource called");
-	}
+        // Wait until async task is completed
+        while (!task.getStatus().equals(Status.SUCCESS.toString())) {
 
-	/**
-	 * @param path
-	 * @return the HTTP URL
-	 */
-	private String getUrl(
-			final String agentApi,
-			final String path) {
-		String url = agentApi + "/" + path;
-		return url;
-	}
-	
-	/**
-	 * @return topology as String
-	 */
-	private String getTopologyFromFile(String path) throws Exception {
+            if (task.getStatus().equals(Status.ERROR.toString())) {
+                throw new ContainerManagerBeanException("Error on JOnAS agent task, id=" + task.getId());
+            }
+            try {
+                Thread.sleep(SLEEPING_PERIOD);
+            } catch (InterruptedException e) {
+            }
+
+            task = sendRequestWithReply(
+                    REST_TYPE.GET,
+                    getUrl(agent.getApiUrl(), "/task/" + String.valueOf(idTask)),
+                    null,
+                    Task.class);
+        }
+
+        // check that the status of the new container is ok
+        Server server = sendRequestWithReply(
+                REST_TYPE.GET,
+                getUrl(agent.getApiUrl(), "/server/" + containerName),
+                null,
+                Server.class);
+
+        // update state in sr
+        jonasContainer.setState(server.getStatus());
+        srJonasContainerEjb.updateJonasContainer(jonasContainer);
+
+        logger.info("Container '" + server.getName() + "' stopped. Status=" + server.getStatus());
+    }
+
+
+    public void deploy(String containerName, URL deployable)
+            throws ContainerManagerBeanException {
+        // TODO
+        System.out.println("JPAAS-CONTAINER-MANAGER / deploy called");
+    }
+
+    public void undeploy(String containerName, URL deployable)
+            throws ContainerManagerBeanException {
+        // TODO
+        System.out.println("JPAAS-CONTAINER-MANAGER / undeploy called");
+    }
+
+    public void createConnector(String containerName, String connectorName,
+            String connectorConf) throws ContainerManagerBeanException {
+        // TODO
+        System.out.println("JPAAS-CONTAINER-MANAGER / createConnector called");
+    }
+
+    public void removeConnector(String containerName, String connectorName)
+            throws ContainerManagerBeanException {
+        // TODO
+        System.out.println("JPAAS-CONTAINER-MANAGER / removeConnector called");
+    }
+
+    public void createDatasource(String containerName, String datasourceName,
+            String datasourceConf) throws ContainerManagerBeanException {
+        // TODO
+        System.out.println("JPAAS-CONTAINER-MANAGER / createDatasource called");
+    }
+
+    public void removeDatasource(String containerName, String datasourceName)
+            throws ContainerManagerBeanException {
+        // TODO
+        System.out.println("JPAAS-CONTAINER-MANAGER / removeDatasource called");
+    }
+
+    /**
+     * @param path
+     * @return the HTTP URL
+     */
+    private String getUrl(
+            final String agentApi,
+            final String path) {
+        String url = agentApi + "/" + path;
+        return url;
+    }
+
+    /**
+     * @return topology as String
+     */
+    private String getTopologyFromFile(String path) throws Exception {
 
         File topologyFile;
         topologyFile = new File(path);
 
-		InputStream inputStream;
-		inputStream = new FileInputStream(topologyFile);
-		
-		byte[] bytes;
-		bytes = new byte[inputStream.available()];
-		inputStream.read(bytes);
-		inputStream.close();
+        InputStream inputStream;
+        inputStream = new FileInputStream(topologyFile);
 
-		return new String(bytes);
-	}
-	
-	/**
-	 * Send a REST request and get response
-	 * @param url request path
-	 * @param requestContent XML content of the request
-	 * @param responseClass response class
-	 * @return ResponseClass response class
-	 */
-	private <ResponseClass> ResponseClass sendRequestWithReply(REST_TYPE type, String url, String requestContent, java.lang.Class <ResponseClass> responseClass) throws ContainerManagerBeanException {
-		
-		Client client = Client.create();
+        byte[] bytes;
+        bytes = new byte[inputStream.available()];
+        inputStream.read(bytes);
+        inputStream.close();
 
-		WebResource webResource = client.resource(url);
+        return new String(bytes);
+    }
 
-		WebResource.Builder builder = webResource.type(MediaType.APPLICATION_XML_TYPE).accept(MediaType.APPLICATION_XML_TYPE);
-		
-		if (requestContent != null) {
-			builder = builder.entity(requestContent);
-		}
-		ClientResponse clientResponse;
-		switch (type) {
-		case PUT:
-			clientResponse = builder.put(ClientResponse.class);
-			break;
-		case GET:
-			clientResponse = builder.get(ClientResponse.class);
-			break;
-		case POST:
-			clientResponse = builder.post(ClientResponse.class);
-			break;
-		case DELETE: 
-			clientResponse = builder.delete(ClientResponse.class);
-			break;
-		default://put
-			clientResponse = builder.put(ClientResponse.class);
-			break;
-		}
+    /**
+     * Send a REST request and get response
+     * @param url request path
+     * @param requestContent XML content of the request
+     * @param responseClass response class
+     * @return ResponseClass response class
+     */
+    private <ResponseClass> ResponseClass sendRequestWithReply(REST_TYPE type, String url, String requestContent, java.lang.Class <ResponseClass> responseClass) throws ContainerManagerBeanException {
 
-		int status = clientResponse.getStatus();
-		
-		if (status != HTTP_STATUS_ACCEPTED && status != HTTP_STATUS_OK && status != HTTP_STATUS_NO_CONTENT) {
-			throw new ContainerManagerBeanException("Error on JOnAS agent request : " + status);
-		}
-		
-		ResponseClass r = null;
-		
-		if (status != HTTP_STATUS_NO_CONTENT) {
-			if (clientResponse.getType() != MediaType.APPLICATION_XML_TYPE) {
-				throw new ContainerManagerBeanException("Error on JOnAS agent response, unexpected type : " + clientResponse.getType());
-			}
-			
-			if (responseClass != null)
-				r = clientResponse.getEntity(responseClass);
-		} 
-				
-		client.destroy();
-		
-		return r;
+        Client client = Client.create();
 
-	}
+        WebResource webResource = client.resource(url);
+
+        WebResource.Builder builder = webResource.type(MediaType.APPLICATION_XML_TYPE).accept(MediaType.APPLICATION_XML_TYPE);
+
+        if (requestContent != null) {
+            builder = builder.entity(requestContent);
+        }
+        ClientResponse clientResponse;
+        switch (type) {
+            case PUT:
+                clientResponse = builder.put(ClientResponse.class);
+                break;
+            case GET:
+                clientResponse = builder.get(ClientResponse.class);
+                break;
+            case POST:
+                clientResponse = builder.post(ClientResponse.class);
+                break;
+            case DELETE:
+                clientResponse = builder.delete(ClientResponse.class);
+                break;
+            default://put
+                clientResponse = builder.put(ClientResponse.class);
+                break;
+        }
+
+        int status = clientResponse.getStatus();
+
+        if (status != HTTP_STATUS_ACCEPTED && status != HTTP_STATUS_OK && status != HTTP_STATUS_NO_CONTENT) {
+            throw new ContainerManagerBeanException("Error on JOnAS agent request : " + status);
+        }
+
+        ResponseClass r = null;
+
+        if (status != HTTP_STATUS_NO_CONTENT) {
+            if (clientResponse.getType() != MediaType.APPLICATION_XML_TYPE) {
+                throw new ContainerManagerBeanException("Error on JOnAS agent response, unexpected type : " + clientResponse.getType());
+            }
+
+            if (responseClass != null)
+                r = clientResponse.getEntity(responseClass);
+        }
+
+        client.destroy();
+
+        return r;
+
+    }
 }
  
