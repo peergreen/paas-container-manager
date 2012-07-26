@@ -204,11 +204,11 @@ public class ContainerManagerBean implements ContainerManager {
 
         // if the link doesn't exist between agent and jonas, create it
         boolean alreadyExist = false;
-        List <PaasResourceVO> paasResources = srJonasAgentLinkEjb.findPaasResourcesByAgent(paasAgentName);
+        List <PaasResourceVO> paasResources = srJonasAgentLinkEjb.findPaasResourcesByAgent(agent.getId());
         for (PaasResourceVO paasResourceVO : paasResources) {
             if (paasResourceVO instanceof JonasVO) {
                 JonasVO jonasResourceVO = (JonasVO) paasResourceVO;
-                if (jonasResourceVO.getName().equals(containerName)) {
+                if (jonasResourceVO.getId().equals(jonasContainer.getId())) {
                     logger.debug("Link between container '"  + containerName + "' and agent '" + paasAgentName +
                             "' already exist!");
                     alreadyExist = true;
@@ -217,7 +217,7 @@ public class ContainerManagerBean implements ContainerManager {
             }
         }
         if (!alreadyExist) {
-            srJonasAgentLinkEjb.addPaasResourceAgentLink(containerName, paasAgentName);
+            srJonasAgentLinkEjb.addPaasResourceAgentLink(jonasContainer.getId(), agent.getId());
         }
 
         // TODO use port range to customize topology file
@@ -302,7 +302,7 @@ public class ContainerManagerBean implements ContainerManager {
         srJonasContainerEjb.updateJonasContainer(jonasContainer);
 
         // Get the agent
-        PaasAgentVO agent = srJonasAgentLinkEjb.findAgentByPaasResource(containerName);
+        PaasAgentVO agent = srJonasAgentLinkEjb.findAgentByPaasResource(jonasContainer.getId());
 
         if (agent == null) {
             throw new ContainerManagerBeanException("Unable to get the agent for container '" + containerName + "' !");
@@ -316,7 +316,7 @@ public class ContainerManagerBean implements ContainerManager {
                 null);
 
         // update state in sr
-        srJonasContainerEjb.deleteJonasContainer(containerName);
+        srJonasContainerEjb.deleteJonasContainer(jonasContainer.getId());
 
         logger.info("Container '" + containerName + "' deleted.");
 
@@ -349,7 +349,7 @@ public class ContainerManagerBean implements ContainerManager {
         srJonasContainerEjb.updateJonasContainer(jonasContainer);
 
         // Get the agent
-        PaasAgentVO agent = srJonasAgentLinkEjb.findAgentByPaasResource(containerName);
+        PaasAgentVO agent = srJonasAgentLinkEjb.findAgentByPaasResource(jonasContainer.getId());
 
         if (agent == null) {
             throw new ContainerManagerBeanException("Unable to get the agent for container '" + containerName + "' !");
@@ -426,7 +426,7 @@ public class ContainerManagerBean implements ContainerManager {
         srJonasContainerEjb.updateJonasContainer(jonasContainer);
 
         // Get the agent
-        PaasAgentVO agent = srJonasAgentLinkEjb.findAgentByPaasResource(containerName);
+        PaasAgentVO agent = srJonasAgentLinkEjb.findAgentByPaasResource(jonasContainer.getId());
 
         if (agent == null) {
             throw new ContainerManagerBeanException("Unable to get the agent for container '" + containerName + "' !");
