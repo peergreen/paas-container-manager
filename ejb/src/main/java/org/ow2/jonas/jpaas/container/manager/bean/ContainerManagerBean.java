@@ -72,7 +72,7 @@ public class ContainerManagerBean implements ContainerManager {
     /**
      * The context of the application
      */
-    private static String CONTEXT = "jonas-api";
+    private static String CONTEXT = "/jonas-api";
 
     /**
      * Http accepted status
@@ -234,7 +234,7 @@ public class ContainerManagerBean implements ContainerManager {
         // Create the REST request
         Task task = sendRequestWithReply(
                 REST_TYPE.PUT,
-                getUrl(agent.getApiUrl(), "/server/" + containerName),
+                getUrl(agent.getApiUrl(), CONTEXT + "/server/" + containerName),
                 topology,
                 Task.class);
 
@@ -254,7 +254,7 @@ public class ContainerManagerBean implements ContainerManager {
 
             task = sendRequestWithReply(
                     REST_TYPE.GET,
-                    getUrl(agent.getApiUrl(), "/task/" + String.valueOf(idTask)),
+                    getUrl(agent.getApiUrl(), CONTEXT + "/task/" + String.valueOf(idTask)),
                     null,
                     Task.class);
 
@@ -263,7 +263,7 @@ public class ContainerManagerBean implements ContainerManager {
         // check that the status of the new container is ok
         Server server = sendRequestWithReply(
                 REST_TYPE.GET,
-                getUrl(agent.getApiUrl(), "/server/" + containerName),
+                getUrl(agent.getApiUrl(), CONTEXT + "/server/" + containerName),
                 null,
                 Server.class);
 
@@ -311,7 +311,7 @@ public class ContainerManagerBean implements ContainerManager {
         // Create the REST request
         sendRequestWithReply(
                 REST_TYPE.DELETE,
-                getUrl(agent.getApiUrl(), "/server/" + containerName),
+                getUrl(agent.getApiUrl(), CONTEXT + "/server/" + containerName),
                 null,
                 null);
 
@@ -358,7 +358,7 @@ public class ContainerManagerBean implements ContainerManager {
         // Create the REST request
         Task task = sendRequestWithReply(
                 REST_TYPE.POST,
-                getUrl(agent.getApiUrl(), "/server/" + containerName + "/action/start"),
+                getUrl(agent.getApiUrl(), CONTEXT + "/server/" + containerName + "/action/start"),
                 null,
                 Task.class);
 
@@ -379,7 +379,7 @@ public class ContainerManagerBean implements ContainerManager {
 
             task = sendRequestWithReply(
                     REST_TYPE.GET,
-                    getUrl(agent.getApiUrl(), "/task/" + String.valueOf(idTask)),
+                    getUrl(agent.getApiUrl(), CONTEXT + "/task/" + String.valueOf(idTask)),
                     null,
                     Task.class);
         }
@@ -387,7 +387,7 @@ public class ContainerManagerBean implements ContainerManager {
         // check that the status of the new container is ok
         Server server = sendRequestWithReply(
                 REST_TYPE.GET,
-                getUrl(agent.getApiUrl(), "/server/" + containerName),
+                getUrl(agent.getApiUrl(), CONTEXT + "/server/" + containerName),
                 null,
                 Server.class);
 
@@ -435,7 +435,7 @@ public class ContainerManagerBean implements ContainerManager {
         // Create the REST request
         Task task = sendRequestWithReply(
                 REST_TYPE.POST,
-                getUrl(agent.getApiUrl(), "/server/" + containerName + "/action/stop"),
+                getUrl(agent.getApiUrl(), CONTEXT + "/server/" + containerName + "/action/stop"),
                 null,
                 Task.class);
 
@@ -456,7 +456,7 @@ public class ContainerManagerBean implements ContainerManager {
 
             task = sendRequestWithReply(
                     REST_TYPE.GET,
-                    getUrl(agent.getApiUrl(), "/task/" + String.valueOf(idTask)),
+                    getUrl(agent.getApiUrl(), CONTEXT + "/task/" + String.valueOf(idTask)),
                     null,
                     Task.class);
         }
@@ -464,7 +464,7 @@ public class ContainerManagerBean implements ContainerManager {
         // check that the status of the new container is ok
         Server server = sendRequestWithReply(
                 REST_TYPE.GET,
-                getUrl(agent.getApiUrl(), "/server/" + containerName),
+                getUrl(agent.getApiUrl(), CONTEXT + "/server/" + containerName),
                 null,
                 Server.class);
 
