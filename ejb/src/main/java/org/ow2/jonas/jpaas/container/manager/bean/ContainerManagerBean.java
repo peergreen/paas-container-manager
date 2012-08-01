@@ -589,7 +589,7 @@ public class ContainerManagerBean implements ContainerManager {
 
         Client client = Client.create();
 
-        WebResource webResource = client.resource(url);
+        WebResource webResource = client.resource(removeRedundantForwardSlash(url));
 
         WebResource.Builder builder = webResource.type(MediaType.APPLICATION_XML_TYPE)
                 .accept(MediaType.APPLICATION_XML_TYPE);
@@ -638,6 +638,16 @@ public class ContainerManagerBean implements ContainerManager {
 
         return r;
 
+    }
+
+    /**
+     * Remove redundant forward slash in a String url
+     * @param s a String url
+     * @return The String url without redundant forward slash
+     */
+    private String removeRedundantForwardSlash(String s) {
+        String tmp = s.replaceAll("/+", "/");
+        return tmp.replaceAll(":/", "://");
     }
 }
  
