@@ -24,6 +24,7 @@
  */
 package org.ow2.jonas.jpaas.container.manager.bean;
 
+import org.ow2.jonas.agent.management.api.xml.App;
 import org.ow2.jonas.jpaas.catalog.api.PaasCatalogException;
 import org.ow2.jonas.jpaas.container.manager.api.ContainerManager;
 import org.ow2.jonas.jpaas.container.manager.api.ContainerManagerBeanException;
@@ -55,7 +56,9 @@ import javax.ws.rs.core.MediaType;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.List;
 
@@ -483,8 +486,97 @@ public class ContainerManagerBean implements ContainerManager {
      */
     public void deploy(String containerName, URL deployable)
             throws ContainerManagerBeanException {
-        // TODO
-        System.out.println("JPAAS-CONTAINER-MANAGER / deploy called");
+        logger.info("Deploying application '" + deployable.toString() + "' on container " + containerName + " ....");
+
+        // get the container from SR
+        JonasVO jonasContainer = null;
+        List<JonasVO> jonasVOList = srJonasContainerEjb.findJonasContainers();
+        for (JonasVO tmp : jonasVOList) {
+            if (tmp.getName().equals(containerName)) {
+                jonasContainer = tmp;
+                break;
+            }
+        }
+        if (jonasContainer == null) {
+            throw new ContainerManagerBeanException("JOnAS container '" + containerName + "' doesn't exist !");
+        }
+
+        // Get the agent
+        PaasAgentVO agent = srJonasAgentLinkEjb.findAgentByPaasResource(jonasContainer.getId());
+
+        if (agent == null) {
+            throw new ContainerManagerBeanException("Unable to get the agent for container '" + containerName + "' !");
+        }
+
+        // Get the application name
+        String stringUrl = deployable.toString();
+        String appName = stringUrl.substring(stringUrl.lastIndexOf('/')+1, stringUrl.length());
+
+        // Create the REST request
+        Client client = Client.create();
+        File applicationFile = null;
+        try {
+            applicationFile = new File(deployable.toURI());
+        } catch (URISyntaxException e) {
+            throw new ContainerManagerBeanException("Unable to get the file from URL '" + deployable + "' !\n" + e);
+        }
+        InputStream inputStream = null;
+        try {
+            inputStream = new FileInputStream(applicationFile);
+        } catch (FileNotFoundException e) {
+            throw new ContainerManagerBeanException("Unable to get the file from URL '" + deployable + "' !\n" + e);
+        }
+        WebResource webResource = client.resource(removeRedundantForwardSlash(getUrl(agent.getApiUrl(), CONTEXT +
+                "/server/" + containerName + "/app/" + appName + "/action/deploy")));
+        WebResource.Builder builder =
+                webResource.type(MediaType.APPLICATION_OCTET_STREAM).accept(MediaType.APPLICATION_XML);
+
+        ClientResponse clientResponse = builder.post(ClientResponse.class, inputStream);
+
+        int status = clientResponse.getStatus();
+        Task task = null;
+        if (status != HTTP_STATUS_ACCEPTED && status != HTTP_STATUS_OK && status != HTTP_STATUS_NO_CONTENT) {
+            throw new ContainerManagerBeanException("Error on JOnAS agent request : " + status);
+        }
+        if (status != HTTP_STATUS_NO_CONTENT) {
+            if (!clientResponse.getType().equals(MediaType.APPLICATION_XML_TYPE)) {
+                throw new ContainerManagerBeanException("Error on JOnAS agent response, unexpected type : " +
+                        clientResponse.getType());
+            }
+
+            task = clientResponse.getEntity(Task.class);
+        }
+
+        Long idTask = task.getId();
+        client.destroy();
+
+        // Wait until async task is completed
+        while (!task.getStatus().equals(Status.SUCCESS.toString())) {
+
+            if (task.getStatus().equals(Status.ERROR.toString())) {
+                throw new ContainerManagerBeanException("Error on JOnAS agent task, id=" + task.getId());
+            }
+            try {
+                Thread.sleep(SLEEPING_PERIOD);
+            } catch (InterruptedException e) {
+                throw new ContainerManagerBeanException(e.getMessage(), e.getCause());
+            }
+
+            task = sendRequestWithReply(
+                    REST_TYPE.GET,
+                    getUrl(agent.getApiUrl(), CONTEXT + "/task/" + String.valueOf(idTask)),
+                    null,
+                    Task.class);
+        }
+
+        // check that the status of the application is DEPLOYED
+        App app = sendRequestWithReply(
+                REST_TYPE.GET,
+                getUrl(agent.getApiUrl(), CONTEXT + "/server/" + containerName + "/app/" + appName),
+                null,
+                App.class);
+
+        logger.info("Application '" + app.getName() + "' deployed. Status=" + app.getStatus());
     }
 
     /**
@@ -495,8 +587,69 @@ public class ContainerManagerBean implements ContainerManager {
      */
     public void undeploy(String containerName, URL deployable)
             throws ContainerManagerBeanException {
-        // TODO
-        System.out.println("JPAAS-CONTAINER-MANAGER / undeploy called");
+        logger.info("Undeploying application '" + deployable.toString() + "' on container " + containerName + " ....");
+
+        // Get the container from SR
+        JonasVO jonasContainer = null;
+        List<JonasVO> jonasVOList = srJonasContainerEjb.findJonasContainers();
+        for (JonasVO tmp : jonasVOList) {
+            if (tmp.getName().equals(containerName)) {
+                jonasContainer = tmp;
+                break;
+            }
+        }
+        if (jonasContainer == null) {
+            throw new ContainerManagerBeanException("JOnAS container '" + containerName + "' doesn't exist !");
+        }
+
+        // Get the agent
+        PaasAgentVO agent = srJonasAgentLinkEjb.findAgentByPaasResource(jonasContainer.getId());
+
+        if (agent == null) {
+            throw new ContainerManagerBeanException("Unable to get the agent for container '" + containerName + "' !");
+        }
+
+        // Get the application name
+        String stringUrl = deployable.toString();
+        String appName = stringUrl.substring(stringUrl.lastIndexOf('/')+1, stringUrl.length());
+
+        // Create the REST request
+        Task task = sendRequestWithReply(
+                REST_TYPE.POST,
+                getUrl(agent.getApiUrl(), CONTEXT + "/server/" + containerName + "/app/" + appName + "/action/undeploy"),
+                null,
+                Task.class);
+
+        Long idTask = task.getId();
+
+
+        // Wait until async task is completed
+        while (!task.getStatus().equals(Status.SUCCESS.toString())) {
+
+            if (task.getStatus().equals(Status.ERROR.toString())) {
+                throw new ContainerManagerBeanException("Error on JOnAS agent task, id=" + task.getId());
+            }
+            try {
+                Thread.sleep(SLEEPING_PERIOD);
+            } catch (InterruptedException e) {
+                throw new ContainerManagerBeanException(e.getMessage(), e.getCause());
+            }
+
+            task = sendRequestWithReply(
+                    REST_TYPE.GET,
+                    getUrl(agent.getApiUrl(), CONTEXT + "/task/" + String.valueOf(idTask)),
+                    null,
+                    Task.class);
+        }
+
+        // check that the status of the application is NOT_DEPLOYED
+        App app = sendRequestWithReply(
+                REST_TYPE.GET,
+                getUrl(agent.getApiUrl(), CONTEXT + "/server/" + containerName + "/app/" + appName),
+                null,
+                App.class);
+
+        logger.info("Application '" + app.getName() + "' undeployed. Status=" + app.getStatus());
     }
 
     /**
@@ -625,7 +778,7 @@ public class ContainerManagerBean implements ContainerManager {
         ResponseClass r = null;
 
         if (status != HTTP_STATUS_NO_CONTENT) {
-            if (clientResponse.getType() != MediaType.APPLICATION_XML_TYPE) {
+            if (!clientResponse.getType().equals(MediaType.APPLICATION_XML_TYPE)) {
                 throw new ContainerManagerBeanException("Error on JOnAS agent response, unexpected type : " +
                         clientResponse.getType());
             }
