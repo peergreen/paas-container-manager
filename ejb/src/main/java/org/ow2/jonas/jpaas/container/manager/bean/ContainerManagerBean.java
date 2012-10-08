@@ -234,6 +234,9 @@ public class ContainerManagerBean implements ContainerManager {
                     containerConf.getSpecificConfig() + "' for paas conf '" + paasConfigurationName +"' - e=" + e);
         }
 
+        // Replace the server name
+        topology = topology.replaceAll("\\$\\{serverName\\}", containerName);
+
         // Create the REST request
         Task task = sendRequestWithReply(
                 REST_TYPE.PUT,
@@ -663,6 +666,85 @@ public class ContainerManagerBean implements ContainerManager {
             String connectorConf) throws ContainerManagerBeanException {
         // TODO
         System.out.println("JPAAS-CONTAINER-MANAGER / createConnector called");
+        // get the container from SR
+        JonasVO jonasContainer = null;
+        List<JonasVO> jonasVOList = srJonasContainerEjb.findJonasContainers();
+        for (JonasVO tmp : jonasVOList) {
+            if (tmp.getName().equals(containerName)) {
+                jonasContainer = tmp;
+                break;
+            }
+        }
+        if (jonasContainer == null) {
+            throw new ContainerManagerBeanException("JOnAS container '" + containerName + "' doesn't exist !");
+        }
+
+        // Get the agent
+        PaasAgentVO agent = srJonasAgentLinkEjb.findAgentByPaasResource(jonasContainer.getId());
+
+        if (agent == null) {
+            throw new ContainerManagerBeanException("Unable to get the agent for container '" + containerName + "' !");
+        }
+
+
+
+        // Create the REST request
+        Client client = Client.create();
+
+        WebResource webResource = client.resource(removeRedundantForwardSlash(getUrl(agent.getApiUrl(), CONTEXT +
+                "/server/" + containerName + "/app/" + connectorName + ".xml" + "/action/deploy")));
+        WebResource.Builder builder =
+                webResource.type(MediaType.APPLICATION_OCTET_STREAM).accept(MediaType.APPLICATION_XML);
+
+        ClientResponse clientResponse = builder.post(ClientResponse.class, connectorConf.getBytes());
+
+        int status = clientResponse.getStatus();
+        Task task = null;
+        if (status != HTTP_STATUS_ACCEPTED && status != HTTP_STATUS_OK && status != HTTP_STATUS_NO_CONTENT) {
+            throw new ContainerManagerBeanException("Error on JOnAS agent request : " + status);
+        }
+        if (status != HTTP_STATUS_NO_CONTENT) {
+            if (!clientResponse.getType().equals(MediaType.APPLICATION_XML_TYPE)) {
+                throw new ContainerManagerBeanException("Error on JOnAS agent response, unexpected type : " +
+                        clientResponse.getType());
+            }
+
+            task = clientResponse.getEntity(Task.class);
+        }
+
+        Long idTask = task.getId();
+        client.destroy();
+
+        // Wait until async task is completed
+        while (!task.getStatus().equals(Status.SUCCESS.toString())) {
+
+            if (task.getStatus().equals(Status.ERROR.toString())) {
+                throw new ContainerManagerBeanException("Error on JOnAS agent task, id=" + task.getId());
+            }
+            try {
+                Thread.sleep(SLEEPING_PERIOD);
+            } catch (InterruptedException e) {
+                throw new ContainerManagerBeanException(e.getMessage(), e.getCause());
+            }
+
+            task = sendRequestWithReply(
+                    REST_TYPE.GET,
+                    getUrl(agent.getApiUrl(), CONTEXT + "/task/" + String.valueOf(idTask)),
+                    null,
+                    Task.class);
+        }
+
+        // check that the status of the application is DEPLOYED
+        App app = sendRequestWithReply(
+                REST_TYPE.GET,
+                getUrl(agent.getApiUrl(), CONTEXT + "/server/" + containerName + "/app/" + connectorName + ".xml"),
+                null,
+                App.class);
+
+        //ToDo : How to get the port from the conf
+        srJonasContainerEjb.addConnector(jonasContainer.getId(), connectorName, 9000);
+
+        logger.info("Connector '" + app.getName() + "' deployed. Status=" + app.getStatus());
     }
 
     /**
@@ -675,6 +757,66 @@ public class ContainerManagerBean implements ContainerManager {
             throws ContainerManagerBeanException {
         // TODO
         System.out.println("JPAAS-CONTAINER-MANAGER / removeConnector called");
+
+        // Get the container from SR
+        JonasVO jonasContainer = null;
+        List<JonasVO> jonasVOList = srJonasContainerEjb.findJonasContainers();
+        for (JonasVO tmp : jonasVOList) {
+            if (tmp.getName().equals(containerName)) {
+                jonasContainer = tmp;
+                break;
+            }
+        }
+        if (jonasContainer == null) {
+            throw new ContainerManagerBeanException("JOnAS container '" + containerName + "' doesn't exist !");
+        }
+
+        // Get the agent
+        PaasAgentVO agent = srJonasAgentLinkEjb.findAgentByPaasResource(jonasContainer.getId());
+
+        if (agent == null) {
+            throw new ContainerManagerBeanException("Unable to get the agent for container '" + containerName + "' !");
+        }
+
+        // Create the REST request
+        Task task = sendRequestWithReply(
+                REST_TYPE.POST,
+                getUrl(agent.getApiUrl(), CONTEXT + "/server/" + containerName + "/app/" + connectorName + ".xml" + "/action/undeploy"),
+                null,
+                Task.class);
+
+        Long idTask = task.getId();
+
+
+        // Wait until async task is completed
+        while (!task.getStatus().equals(Status.SUCCESS.toString())) {
+
+            if (task.getStatus().equals(Status.ERROR.toString())) {
+                throw new ContainerManagerBeanException("Error on JOnAS agent task, id=" + task.getId());
+            }
+            try {
+                Thread.sleep(SLEEPING_PERIOD);
+            } catch (InterruptedException e) {
+                throw new ContainerManagerBeanException(e.getMessage(), e.getCause());
+            }
+
+            task = sendRequestWithReply(
+                    REST_TYPE.GET,
+                    getUrl(agent.getApiUrl(), CONTEXT + "/task/" + String.valueOf(idTask)),
+                    null,
+                    Task.class);
+        }
+
+        // check that the status of the application is NOT_DEPLOYED
+        App app = sendRequestWithReply(
+                REST_TYPE.GET,
+                getUrl(agent.getApiUrl(), CONTEXT + "/server/" + containerName + "/app/" + connectorName + ".xml"),
+                null,
+                App.class);
+
+        srJonasContainerEjb.removeConnector(jonasContainer.getId(), connectorName);
+
+        logger.info("Connector '" + app.getName() + "' undeployed. Status=" + app.getStatus());
     }
 
     /**
@@ -747,25 +889,35 @@ public class ContainerManagerBean implements ContainerManager {
         WebResource.Builder builder = webResource.type(MediaType.APPLICATION_XML_TYPE)
                 .accept(MediaType.APPLICATION_XML_TYPE);
 
-        if (requestContent != null) {
-            builder = builder.entity(requestContent);
-        }
+
         ClientResponse clientResponse;
         switch (type) {
             case PUT:
-                clientResponse = builder.put(ClientResponse.class);
+                if (requestContent != null) {
+                    clientResponse = builder.put(ClientResponse.class, requestContent);
+                } else {
+                    clientResponse = builder.put(ClientResponse.class);
+                }
                 break;
             case GET:
                 clientResponse = builder.get(ClientResponse.class);
                 break;
             case POST:
-                clientResponse = builder.post(ClientResponse.class);
+                if (requestContent != null) {
+                    clientResponse = builder.post(ClientResponse.class, requestContent);
+                } else {
+                    clientResponse = builder.post(ClientResponse.class);
+                }
                 break;
             case DELETE:
                 clientResponse = builder.delete(ClientResponse.class);
                 break;
             default://put
-                clientResponse = builder.put(ClientResponse.class);
+                if (requestContent != null) {
+                    clientResponse = builder.put(ClientResponse.class, requestContent);
+                } else {
+                    clientResponse = builder.put(ClientResponse.class);
+                }
                 break;
         }
 
