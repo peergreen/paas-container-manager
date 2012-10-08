@@ -56,10 +56,13 @@ import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
 import javax.ws.rs.core.MediaType;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.List;
@@ -671,7 +674,10 @@ public class ContainerManagerBean implements ContainerManager {
     @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
     public void createConnector(String containerName, String connectorName,
             String connectorConf) throws ContainerManagerBeanException {
-        // TODO
+        // ToDo : use connectorConf. For now, a template is used instead.
+        // ToDo : not use hard-coded port
+        Integer port = 9009;
+        Integer redirectPort = 9043;
         System.out.println("JPAAS-CONTAINER-MANAGER / createConnector called");
         // get the container from SR
         JonasVO jonasContainer = null;
@@ -693,6 +699,18 @@ public class ContainerManagerBean implements ContainerManager {
             throw new ContainerManagerBeanException("Unable to get the agent for container '" + containerName + "' !");
         }
 
+        //Use the connector Template
+        String connectorConfiguration = null;
+        URL connectorTemplateURL = this.getClass().getClassLoader().getResource("connector-template.xml");
+        try {
+            String connectorTemplate = convertUrlToString(connectorTemplateURL);
+            // Replace the template ports
+            connectorConfiguration = connectorTemplate.replaceAll("\\$\\{port\\}", port.toString());
+            connectorConfiguration = connectorConfiguration.replaceAll("\\$\\{redirectPort\\}",
+                    redirectPort.toString());
+        } catch (IOException e) {
+            throw new ContainerManagerBeanException("Cannot get the connector template file !");
+        }
 
 
         // Create the REST request
@@ -703,7 +721,7 @@ public class ContainerManagerBean implements ContainerManager {
         WebResource.Builder builder =
                 webResource.type(MediaType.APPLICATION_OCTET_STREAM).accept(MediaType.APPLICATION_XML);
 
-        ClientResponse clientResponse = builder.post(ClientResponse.class, connectorConf.getBytes());
+        ClientResponse clientResponse = builder.post(ClientResponse.class, connectorConfiguration.getBytes());
 
         int status = clientResponse.getStatus();
         Task task = null;
@@ -748,8 +766,7 @@ public class ContainerManagerBean implements ContainerManager {
                 null,
                 App.class);
 
-        //ToDo : How to get the port from the conf
-        srJonasContainerEjb.addConnector(jonasContainer.getId(), connectorName, 9000);
+        srJonasContainerEjb.addConnector(jonasContainer.getId(), connectorName, port);
 
         logger.info("Connector '" + app.getName() + "' deployed. Status=" + app.getStatus());
     }
@@ -763,7 +780,7 @@ public class ContainerManagerBean implements ContainerManager {
     @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
     public void removeConnector(String containerName, String connectorName)
             throws ContainerManagerBeanException {
-        // TODO
+        // TODO : Bug with JOnAS : JONAS-934
         System.out.println("JPAAS-CONTAINER-MANAGER / removeConnector called");
 
         // Get the container from SR
@@ -957,12 +974,28 @@ public class ContainerManagerBean implements ContainerManager {
 
     /**
      * Remove redundant forward slash in a String url
-     * @param s a String url
+     * @params  a String url
      * @return The String url without redundant forward slash
      */
     private String removeRedundantForwardSlash(String s) {
         String tmp = s.replaceAll("/+", "/");
         return tmp.replaceAll(":/", "://");
+    }
+
+    private String convertUrlToString(URL file) throws IOException {
+        InputStream urlStream = file.openStream();
+        InputStreamReader is = new InputStreamReader(urlStream);
+        BufferedReader br = new BufferedReader(is);
+        String read = br.readLine();
+        StringBuffer sb = new StringBuffer(read);
+        while(read != null) {
+            read = br.readLine();
+            if (read != null) {
+                sb.append(read);
+                sb.append(System.getProperty("line.separator"));
+            }
+        }
+        return sb.toString();
     }
 }
  

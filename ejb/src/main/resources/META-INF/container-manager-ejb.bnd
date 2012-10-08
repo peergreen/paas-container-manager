@@ -9,3 +9,5 @@ Export-Package        org.ow2.jonas.jpaas.container.manager.api
 Private-Package       org.ow2.jonas.jpaas.container.manager.bean
 
 Embed-Dependency      jersey-client, jersey-core, agent-management-api
+
+Include-Resource      {maven-resources}

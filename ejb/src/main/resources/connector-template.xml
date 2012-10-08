@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configadmin xmlns="http://jonas.ow2.org/ns/configadmin/1.0">
+
+ <!-- xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jonas.ow2.org/ns/configadmin/1.0
+    configadmin-1.0.xsd" -->
+
+<!--
+  <factory-configuration pid="Tomcat7AjpConnector">
+    <property name="address"></property>
+    <property name="port">9011</property>
+  </factory-configuration>
+-->
+
+ <factory-configuration pid="Tomcat7AjpConnector">
+   <property name="address"></property>
+   <property name="port">${port}</property>
+   <property name="redirectPort">${redirectPort}</property>
+   <property name="maxThreads">300</property>
+   <property name="minSpareThreads">20</property>
+   <property name="enableLookups">true</property>
+   <property name="connectionTimeout">120000</property>
+   <property name="acceptCount">1000</property>
+   <property name="maxKeepAliveRequests">-1</property>
+   <property name="compression">on</property>
+ </factory-configuration>
+
+</configadmin>
