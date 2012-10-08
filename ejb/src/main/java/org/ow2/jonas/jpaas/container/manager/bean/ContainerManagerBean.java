@@ -52,6 +52,8 @@ import org.ow2.util.log.LogFactory;
 import javax.ejb.Local;
 import javax.ejb.Remote;
 import javax.ejb.Stateless;
+import javax.ejb.TransactionAttribute;
+import javax.ejb.TransactionAttributeType;
 import javax.ws.rs.core.MediaType;
 
 import java.io.File;
@@ -153,6 +155,7 @@ public class ContainerManagerBean implements ContainerManager {
      * @param portRange the port range
      * @throws ContainerManagerBeanException
      */
+    @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
     public void createContainer(String containerName, String paasAgentName,
             String paasConfigurationName, Integer portRange)
             throws ContainerManagerBeanException {
@@ -286,6 +289,7 @@ public class ContainerManagerBean implements ContainerManager {
      * @param containerName Name of the container
      * @throws ContainerManagerBeanException
      */
+    @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
     public void removeContainer(String containerName)
             throws ContainerManagerBeanException {
 
@@ -333,6 +337,7 @@ public class ContainerManagerBean implements ContainerManager {
      * @param containerName Name of the Container
      * @throws ContainerManagerBeanException
      */
+    @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
     public void startContainer(String containerName)
             throws ContainerManagerBeanException {
 
@@ -410,6 +415,7 @@ public class ContainerManagerBean implements ContainerManager {
      * @param containerName Name of the container
      * @throws ContainerManagerBeanException
      */
+    @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
     public void stopContainer(String containerName)
             throws ContainerManagerBeanException {
 
@@ -662,6 +668,7 @@ public class ContainerManagerBean implements ContainerManager {
      * @param connectorConf Configuration of the Connector
      * @throws ContainerManagerBeanException
      */
+    @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
     public void createConnector(String containerName, String connectorName,
             String connectorConf) throws ContainerManagerBeanException {
         // TODO
@@ -753,6 +760,7 @@ public class ContainerManagerBean implements ContainerManager {
      * @param connectorName Name of the Connector
      * @throws ContainerManagerBeanException
      */
+    @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
     public void removeConnector(String containerName, String connectorName)
             throws ContainerManagerBeanException {
         // TODO
@@ -826,6 +834,7 @@ public class ContainerManagerBean implements ContainerManager {
      * @param datasourceConf Configuration of the Datasource
      * @throws ContainerManagerBeanException
      */
+    @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
     public void createDatasource(String containerName, String datasourceName,
             String datasourceConf) throws ContainerManagerBeanException {
         // TODO
@@ -838,6 +847,7 @@ public class ContainerManagerBean implements ContainerManager {
      * @param datasourceName Name of the Datasource
      * @throws ContainerManagerBeanException
      */
+    @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
     public void removeDatasource(String containerName, String datasourceName)
             throws ContainerManagerBeanException {
         // TODO
