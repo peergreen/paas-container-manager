@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<deployment-plan xmlns="http://jonas.ow2.org/ns/deployment-plan/1.0"
+                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                 xmlns:m2="http://jonas.ow2.org/ns/deployment-plan/maven2/1.0"
+                 xmlns:url="http://jonas.ow2.org/ns/deployment-plan/url/1.0"
+                 xsi:schemaLocation="http://jonas.ow2.org/ns/deployment-plan/1.0 http://jonas.ow2.org/ns/deployment-plan/1.0/deployment-plan-1.0.xsd
+                      http://jonas.ow2.org/ns/deployment-plan/maven2/1.0 http://jonas.ow2.org/ns/deployment-plan/maven2-deployment-plan-1.0.xsd"
+                 atomic="false" id="${id}">
+
+
+
+  <deployment xsi:type="url:url-deploymentType">
+    <url:resource>${resource}</url:resource>
+    <repository-ref>${repo-id}</repository-ref>
+  </deployment>
+
+
+</deployment-plan>

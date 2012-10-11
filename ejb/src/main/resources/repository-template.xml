@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<repositories
+    xmlns="http://jonas.ow2.org/ns/deployment-plan/repositories/1.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="repositories-1.0.xsd">
+
+  <repository id="${id}">
+    <type>url</type>
+    <url>${url}</url>
+  </repository>
+
+</repositories>

@@ -59,11 +59,9 @@ import javax.ws.rs.core.MediaType;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.List;
 
@@ -250,27 +248,8 @@ public class ContainerManagerBean implements ContainerManager {
                 topology,
                 Task.class);
 
-        Long idTask = task.getId();
-
         // Wait until async task is completed
-        while (!task.getStatus().equals(Status.SUCCESS.toString())) {
-
-            if (task.getStatus().equals(Status.ERROR.toString())) {
-                throw new ContainerManagerBeanException("Error on JOnAS agent task, id=" + task.getId());
-            }
-            try {
-                Thread.sleep(SLEEPING_PERIOD);
-            } catch (InterruptedException e) {
-                throw new ContainerManagerBeanException(e.getMessage(), e.getCause());
-            }
-
-            task = sendRequestWithReply(
-                    REST_TYPE.GET,
-                    getUrl(agent.getApiUrl(), CONTEXT + "/task/" + String.valueOf(idTask)),
-                    null,
-                    Task.class);
-
-        }
+        waitUntilAsyncTaskIsCompleted(task, agent.getApiUrl());
 
         // check that the status of the new container is ok
         Server server = sendRequestWithReply(
@@ -376,27 +355,8 @@ public class ContainerManagerBean implements ContainerManager {
                 null,
                 Task.class);
 
-        Long idTask = task.getId();
-
-
         // Wait until async task is completed
-        while (!task.getStatus().equals(Status.SUCCESS.toString())) {
-
-            if (task.getStatus().equals(Status.ERROR.toString())) {
-                throw new ContainerManagerBeanException("Error on JOnAS agent task, id=" + task.getId());
-            }
-            try {
-                Thread.sleep(SLEEPING_PERIOD);
-            } catch (InterruptedException e) {
-                throw new ContainerManagerBeanException(e.getMessage(), e.getCause());
-            }
-
-            task = sendRequestWithReply(
-                    REST_TYPE.GET,
-                    getUrl(agent.getApiUrl(), CONTEXT + "/task/" + String.valueOf(idTask)),
-                    null,
-                    Task.class);
-        }
+        waitUntilAsyncTaskIsCompleted(task, agent.getApiUrl());
 
         // check that the status of the new container is ok
         Server server = sendRequestWithReply(
@@ -454,27 +414,8 @@ public class ContainerManagerBean implements ContainerManager {
                 null,
                 Task.class);
 
-        Long idTask = task.getId();
-
-
         // Wait until async task is completed
-        while (!task.getStatus().equals(Status.SUCCESS.toString())) {
-
-            if (task.getStatus().equals(Status.ERROR.toString())) {
-                throw new ContainerManagerBeanException("Error on JOnAS agent task, id=" + task.getId());
-            }
-            try {
-                Thread.sleep(SLEEPING_PERIOD);
-            } catch (InterruptedException e) {
-                throw new ContainerManagerBeanException(e.getMessage(), e.getCause());
-            }
-
-            task = sendRequestWithReply(
-                    REST_TYPE.GET,
-                    getUrl(agent.getApiUrl(), CONTEXT + "/task/" + String.valueOf(idTask)),
-                    null,
-                    Task.class);
-        }
+        waitUntilAsyncTaskIsCompleted(task, agent.getApiUrl());
 
         // check that the status of the new container is ok
         Server server = sendRequestWithReply(
@@ -520,71 +461,76 @@ public class ContainerManagerBean implements ContainerManager {
             throw new ContainerManagerBeanException("Unable to get the agent for container '" + containerName + "' !");
         }
 
+        //Repository operations
+        String repoName = "repo-" + deployable.getAuthority();
+        String repoFileName = repoName + ".xml";
+        //Check if the repository file is already deployed on the container
+        App repo = sendRequestWithReply(
+                REST_TYPE.GET,
+                getUrl(agent.getApiUrl(), CONTEXT + "/server/" + containerName + "/app/" + repoFileName),
+                null,
+                App.class);
+        //If the repository file is not present, create the file and deploy it
+        if (repo.getStatus().equals("NOT_DEPLOYED")) {
+            //Use the repository Template
+            String repoContent = null;
+            URL repoTemplateURL = this.getClass().getClassLoader().getResource("repository-template.xml");
+            try {
+                String repoTemplate = convertUrlToString(repoTemplateURL);
+                // Replace the template id and url
+                repoContent = repoTemplate.replaceAll("\\$\\{id\\}", repoName);
+                repoContent = repoContent.replaceAll("\\$\\{url\\}",
+                        deployable.getProtocol() + "://" + deployable.getAuthority());
+            } catch (IOException e) {
+                throw new ContainerManagerBeanException("Cannot get the repository template file !");
+            }
+            //Deploy the repository file
+            Task task = sendDeployRequestWithReply(agent.getApiUrl(), containerName, repoFileName,
+                    repoContent.getBytes());
+            // Wait until async task is completed
+            waitUntilAsyncTaskIsCompleted(task, agent.getApiUrl());
+            // check that the status of the repository file is DEPLOYED
+            repo = sendRequestWithReply(
+                    REST_TYPE.GET,
+                    getUrl(agent.getApiUrl(), CONTEXT + "/server/" + containerName + "/app/" + repoFileName),
+                    null,
+                    App.class);
+            if (!repo.getStatus().equals("DEPLOYED")) {
+                throw new ContainerManagerBeanException("Error : the repository file " + repoFileName +
+                        " is not deployed correctly!");
+            }
+        }
+
+
         // Get the application name
         String stringUrl = deployable.toString();
         String appName = stringUrl.substring(stringUrl.lastIndexOf('/')+1, stringUrl.length());
 
-        // Create the REST request
-        Client client = Client.create();
-        File applicationFile = null;
+        //Create Deployment-Plan
+        String deploymentPlanName = "plan-" + appName;
+        String deploymentPlanFileName = deploymentPlanName + ".xml";
+        //Use the deployment-plan Template
+        String deploymentPlanContent = null;
+        URL deploymentPlanTemplateURL = this.getClass().getClassLoader().getResource("deployment-plan-template.xml");
         try {
-            applicationFile = new File(deployable.toURI());
-        } catch (URISyntaxException e) {
-            throw new ContainerManagerBeanException("Unable to get the file from URL '" + deployable + "' !\n" + e);
+            String deploymentPlanTemplate = convertUrlToString(deploymentPlanTemplateURL);
+            // Replace the template id and resource
+            deploymentPlanContent = deploymentPlanTemplate.replaceAll("\\$\\{id\\}", deploymentPlanName);
+            deploymentPlanContent = deploymentPlanContent.replaceAll("\\$\\{resource\\}", deployable.getPath());
+            deploymentPlanContent = deploymentPlanContent.replaceAll("\\$\\{repo-id\\}", repoName);
+        } catch (IOException e) {
+            throw new ContainerManagerBeanException("Cannot get the deployment plan template file !");
         }
-        InputStream inputStream = null;
-        try {
-            inputStream = new FileInputStream(applicationFile);
-        } catch (FileNotFoundException e) {
-            throw new ContainerManagerBeanException("Unable to get the file from URL '" + deployable + "' !\n" + e);
-        }
-        WebResource webResource = client.resource(removeRedundantForwardSlash(getUrl(agent.getApiUrl(), CONTEXT +
-                "/server/" + containerName + "/app/" + appName + "/action/deploy")));
-        WebResource.Builder builder =
-                webResource.type(MediaType.APPLICATION_OCTET_STREAM).accept(MediaType.APPLICATION_XML);
-
-        ClientResponse clientResponse = builder.post(ClientResponse.class, inputStream);
-
-        int status = clientResponse.getStatus();
-        Task task = null;
-        if (status != HTTP_STATUS_ACCEPTED && status != HTTP_STATUS_OK && status != HTTP_STATUS_NO_CONTENT) {
-            throw new ContainerManagerBeanException("Error on JOnAS agent request : " + status);
-        }
-        if (status != HTTP_STATUS_NO_CONTENT) {
-            if (!clientResponse.getType().equals(MediaType.APPLICATION_XML_TYPE)) {
-                throw new ContainerManagerBeanException("Error on JOnAS agent response, unexpected type : " +
-                        clientResponse.getType());
-            }
-
-            task = clientResponse.getEntity(Task.class);
-        }
-
-        Long idTask = task.getId();
-        client.destroy();
+        Task task = sendDeployRequestWithReply(agent.getApiUrl(), containerName, deploymentPlanFileName,
+                deploymentPlanContent.getBytes());
 
         // Wait until async task is completed
-        while (!task.getStatus().equals(Status.SUCCESS.toString())) {
-
-            if (task.getStatus().equals(Status.ERROR.toString())) {
-                throw new ContainerManagerBeanException("Error on JOnAS agent task, id=" + task.getId());
-            }
-            try {
-                Thread.sleep(SLEEPING_PERIOD);
-            } catch (InterruptedException e) {
-                throw new ContainerManagerBeanException(e.getMessage(), e.getCause());
-            }
-
-            task = sendRequestWithReply(
-                    REST_TYPE.GET,
-                    getUrl(agent.getApiUrl(), CONTEXT + "/task/" + String.valueOf(idTask)),
-                    null,
-                    Task.class);
-        }
+        waitUntilAsyncTaskIsCompleted(task, agent.getApiUrl());
 
         // check that the status of the application is DEPLOYED
         App app = sendRequestWithReply(
                 REST_TYPE.GET,
-                getUrl(agent.getApiUrl(), CONTEXT + "/server/" + containerName + "/app/" + appName),
+                getUrl(agent.getApiUrl(), CONTEXT + "/server/" + containerName + "/app/" + deploymentPlanFileName),
                 null,
                 App.class);
 
@@ -632,27 +578,8 @@ public class ContainerManagerBean implements ContainerManager {
                 null,
                 Task.class);
 
-        Long idTask = task.getId();
-
-
         // Wait until async task is completed
-        while (!task.getStatus().equals(Status.SUCCESS.toString())) {
-
-            if (task.getStatus().equals(Status.ERROR.toString())) {
-                throw new ContainerManagerBeanException("Error on JOnAS agent task, id=" + task.getId());
-            }
-            try {
-                Thread.sleep(SLEEPING_PERIOD);
-            } catch (InterruptedException e) {
-                throw new ContainerManagerBeanException(e.getMessage(), e.getCause());
-            }
-
-            task = sendRequestWithReply(
-                    REST_TYPE.GET,
-                    getUrl(agent.getApiUrl(), CONTEXT + "/task/" + String.valueOf(idTask)),
-                    null,
-                    Task.class);
-        }
+        waitUntilAsyncTaskIsCompleted(task, agent.getApiUrl());
 
         // check that the status of the application is NOT_DEPLOYED
         App app = sendRequestWithReply(
@@ -714,55 +641,18 @@ public class ContainerManagerBean implements ContainerManager {
 
 
         // Create the REST request
-        Client client = Client.create();
+        String connectorFileName = connectorName + ".xml";
 
-        WebResource webResource = client.resource(removeRedundantForwardSlash(getUrl(agent.getApiUrl(), CONTEXT +
-                "/server/" + containerName + "/app/" + connectorName + ".xml" + "/action/deploy")));
-        WebResource.Builder builder =
-                webResource.type(MediaType.APPLICATION_OCTET_STREAM).accept(MediaType.APPLICATION_XML);
-
-        ClientResponse clientResponse = builder.post(ClientResponse.class, connectorConfiguration.getBytes());
-
-        int status = clientResponse.getStatus();
-        Task task = null;
-        if (status != HTTP_STATUS_ACCEPTED && status != HTTP_STATUS_OK && status != HTTP_STATUS_NO_CONTENT) {
-            throw new ContainerManagerBeanException("Error on JOnAS agent request : " + status);
-        }
-        if (status != HTTP_STATUS_NO_CONTENT) {
-            if (!clientResponse.getType().equals(MediaType.APPLICATION_XML_TYPE)) {
-                throw new ContainerManagerBeanException("Error on JOnAS agent response, unexpected type : " +
-                        clientResponse.getType());
-            }
-
-            task = clientResponse.getEntity(Task.class);
-        }
-
-        Long idTask = task.getId();
-        client.destroy();
+        Task task = sendDeployRequestWithReply(agent.getApiUrl(), containerName, connectorFileName,
+                connectorConfiguration.getBytes());
 
         // Wait until async task is completed
-        while (!task.getStatus().equals(Status.SUCCESS.toString())) {
-
-            if (task.getStatus().equals(Status.ERROR.toString())) {
-                throw new ContainerManagerBeanException("Error on JOnAS agent task, id=" + task.getId());
-            }
-            try {
-                Thread.sleep(SLEEPING_PERIOD);
-            } catch (InterruptedException e) {
-                throw new ContainerManagerBeanException(e.getMessage(), e.getCause());
-            }
-
-            task = sendRequestWithReply(
-                    REST_TYPE.GET,
-                    getUrl(agent.getApiUrl(), CONTEXT + "/task/" + String.valueOf(idTask)),
-                    null,
-                    Task.class);
-        }
+        waitUntilAsyncTaskIsCompleted(task, agent.getApiUrl());
 
         // check that the status of the application is DEPLOYED
         App app = sendRequestWithReply(
                 REST_TYPE.GET,
-                getUrl(agent.getApiUrl(), CONTEXT + "/server/" + containerName + "/app/" + connectorName + ".xml"),
+                getUrl(agent.getApiUrl(), CONTEXT + "/server/" + containerName + "/app/" + connectorFileName),
                 null,
                 App.class);
 
@@ -810,27 +700,8 @@ public class ContainerManagerBean implements ContainerManager {
                 null,
                 Task.class);
 
-        Long idTask = task.getId();
-
-
         // Wait until async task is completed
-        while (!task.getStatus().equals(Status.SUCCESS.toString())) {
-
-            if (task.getStatus().equals(Status.ERROR.toString())) {
-                throw new ContainerManagerBeanException("Error on JOnAS agent task, id=" + task.getId());
-            }
-            try {
-                Thread.sleep(SLEEPING_PERIOD);
-            } catch (InterruptedException e) {
-                throw new ContainerManagerBeanException(e.getMessage(), e.getCause());
-            }
-
-            task = sendRequestWithReply(
-                    REST_TYPE.GET,
-                    getUrl(agent.getApiUrl(), CONTEXT + "/task/" + String.valueOf(idTask)),
-                    null,
-                    Task.class);
-        }
+        waitUntilAsyncTaskIsCompleted(task, agent.getApiUrl());
 
         // check that the status of the application is NOT_DEPLOYED
         App app = sendRequestWithReply(
@@ -973,8 +844,65 @@ public class ContainerManagerBean implements ContainerManager {
     }
 
     /**
+     * Send a REST request and get response
+     * @param apiUrl Api URL of the Agent
+     * @param containerName container Name
+     * @param appFileName name of the application file
+     * @param appContent application content
+     * @return Task
+     */
+    private Task sendDeployRequestWithReply(String apiUrl, String containerName, String appFileName, Object appContent)
+            throws ContainerManagerBeanException {
+
+        Client client = Client.create();
+
+        WebResource webResource = client.resource(removeRedundantForwardSlash(getUrl(apiUrl, CONTEXT +
+                "/server/" + containerName + "/app/" + appFileName + "/action/deploy")));
+        WebResource.Builder builder =
+                webResource.type(MediaType.APPLICATION_OCTET_STREAM).accept(MediaType.APPLICATION_XML);
+
+        ClientResponse clientResponse = builder.post(ClientResponse.class, appContent);
+
+        int status = clientResponse.getStatus();
+        Task task = null;
+        if (status != HTTP_STATUS_ACCEPTED && status != HTTP_STATUS_OK && status != HTTP_STATUS_NO_CONTENT) {
+            throw new ContainerManagerBeanException("Error on JOnAS agent request : " + status);
+        }
+        if (status != HTTP_STATUS_NO_CONTENT) {
+            if (!clientResponse.getType().equals(MediaType.APPLICATION_XML_TYPE)) {
+                throw new ContainerManagerBeanException("Error on JOnAS agent response, unexpected type : " +
+                        clientResponse.getType());
+            }
+
+            task = clientResponse.getEntity(Task.class);
+        }
+        client.destroy();
+        return task;
+    }
+
+    private void waitUntilAsyncTaskIsCompleted(Task task, String apiUrl) throws ContainerManagerBeanException {
+        while (!task.getStatus().equals(Status.SUCCESS.toString())) {
+
+            if (task.getStatus().equals(Status.ERROR.toString())) {
+                throw new ContainerManagerBeanException("Error on JOnAS agent task, id=" + task.getId());
+            }
+            try {
+                Thread.sleep(SLEEPING_PERIOD);
+            } catch (InterruptedException e) {
+                throw new ContainerManagerBeanException(e.getMessage(), e.getCause());
+            }
+
+            task = sendRequestWithReply(
+                    REST_TYPE.GET,
+                    getUrl(apiUrl, CONTEXT + "/task/" + String.valueOf(task.getId())),
+                    null,
+                    Task.class);
+        }
+    }
+
+    /**
      * Remove redundant forward slash in a String url
-     * @params  a String url
+     * @param s a String url
      * @return The String url without redundant forward slash
      */
     private String removeRedundantForwardSlash(String s) {
