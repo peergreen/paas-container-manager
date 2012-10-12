@@ -32,9 +32,12 @@ import org.ow2.jonas.jpaas.container.manager.api.ContainerManagerBeanException;
 import org.ow2.easybeans.osgi.annotation.OSGiResource;
 import org.ow2.jonas.jpaas.catalog.api.IPaasCatalogFacade;
 import org.ow2.jonas.jpaas.catalog.api.PaasConfiguration;
+import org.ow2.jonas.jpaas.sr.facade.api.ISrPaasAgentIaasComputeLink;
 import org.ow2.jonas.jpaas.sr.facade.api.ISrPaasJonasContainerFacade;
 import org.ow2.jonas.jpaas.sr.facade.api.ISrPaasAgentFacade;
+import org.ow2.jonas.jpaas.sr.facade.api.ISrPaasResourceIaasComputeLink;
 import org.ow2.jonas.jpaas.sr.facade.api.ISrPaasResourcePaasAgentLink;
+import org.ow2.jonas.jpaas.sr.facade.vo.IaasComputeVO;
 import org.ow2.jonas.jpaas.sr.facade.vo.JonasVO;
 import org.ow2.jonas.jpaas.sr.facade.vo.PaasAgentVO;
 import org.ow2.jonas.jpaas.sr.facade.vo.PaasResourceVO;
@@ -143,6 +146,19 @@ public class ContainerManagerBean implements ContainerManager {
     private ISrPaasResourcePaasAgentLink srJonasAgentLinkEjb;
 
     /**
+     * SR facade agent - iaasCompute link
+     */
+    @OSGiResource
+    private ISrPaasAgentIaasComputeLink srPaasAgentIaasComputeLink;
+
+    /**
+     * SR facade paasResource - iaasCompute link
+     */
+    @OSGiResource
+    private ISrPaasResourceIaasComputeLink srPaasResourceIaasComputeLink;
+
+
+    /**
      * Constructor
      */
     public ContainerManagerBean() {
@@ -227,6 +243,12 @@ public class ContainerManagerBean implements ContainerManager {
             srJonasAgentLinkEjb.addPaasResourceAgentLink(jonasContainer.getId(), agent.getId());
         }
 
+        //create the link between the PaaS Container and the IaaS Compute
+        IaasComputeVO iaasCompute = srPaasAgentIaasComputeLink.findIaasComputeByPaasAgent(agent.getId());
+        if (iaasCompute != null) {
+            srPaasResourceIaasComputeLink.addPaasResourceIaasComputeLink(jonasContainer.getId(), iaasCompute.getId());
+        }
+
         // TODO use port range to customize topology file
 
         // Load the topology file
@@ -307,7 +329,15 @@ public class ContainerManagerBean implements ContainerManager {
                 null,
                 null);
 
+
         // update state in sr
+        //remove container - iaasCompute link
+        IaasComputeVO iaasCompute = srPaasResourceIaasComputeLink.findIaasComputeByPaasResource(jonasContainer.getId());
+        if (iaasCompute != null) {
+            srPaasResourceIaasComputeLink.removePaasResourceIaasComputeLink(jonasContainer.getId(),
+                    iaasCompute.getId());
+        }
+        //delete jonas container in SR
         srJonasContainerEjb.deleteJonasContainer(jonasContainer.getId());
 
         logger.info("Container '" + containerName + "' deleted.");
