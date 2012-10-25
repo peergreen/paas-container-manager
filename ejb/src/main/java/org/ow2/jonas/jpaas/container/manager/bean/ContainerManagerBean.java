@@ -37,6 +37,7 @@ import org.ow2.jonas.jpaas.sr.facade.api.ISrPaasJonasContainerFacade;
 import org.ow2.jonas.jpaas.sr.facade.api.ISrPaasAgentFacade;
 import org.ow2.jonas.jpaas.sr.facade.api.ISrPaasResourceIaasComputeLink;
 import org.ow2.jonas.jpaas.sr.facade.api.ISrPaasResourcePaasAgentLink;
+import org.ow2.jonas.jpaas.sr.facade.vo.ConnectorVO;
 import org.ow2.jonas.jpaas.sr.facade.vo.IaasComputeVO;
 import org.ow2.jonas.jpaas.sr.facade.vo.JonasVO;
 import org.ow2.jonas.jpaas.sr.facade.vo.PaasAgentVO;
@@ -649,46 +650,58 @@ public class ContainerManagerBean implements ContainerManager {
             throw new ContainerManagerBeanException("JOnAS container '" + containerName + "' doesn't exist !");
         }
 
-        // Get the agent
-        PaasAgentVO agent = srJonasAgentLinkEjb.findAgentByPaasResource(jonasContainer.getId());
+        //Do nothing if there is already a connector with the same name
+        boolean connectorExists = false;
+        List<ConnectorVO> connectorVOList = jonasContainer.getConnectorList();
+        for (ConnectorVO connector : connectorVOList) {
+            if (connector.getName().equals(connectorName)) {
+                connectorExists = true;
+                break;
+            }
+        }
+        if (!connectorExists) {
+            // Get the agent
+            PaasAgentVO agent = srJonasAgentLinkEjb.findAgentByPaasResource(jonasContainer.getId());
 
-        if (agent == null) {
-            throw new ContainerManagerBeanException("Unable to get the agent for container '" + containerName + "' !");
+            if (agent == null) {
+                throw new ContainerManagerBeanException("Unable to get the agent for container '" + containerName + "' !");
+            }
+
+            //Use the connector Template
+            String connectorConfiguration = null;
+            URL connectorTemplateURL = this.getClass().getClassLoader().getResource("connector-template.xml");
+            try {
+                String connectorTemplate = convertUrlToString(connectorTemplateURL);
+                // Replace the template ports
+                connectorConfiguration = connectorTemplate.replaceAll("\\$\\{port\\}", port.toString());
+                connectorConfiguration = connectorConfiguration.replaceAll("\\$\\{redirectPort\\}",
+                        redirectPort.toString());
+            } catch (IOException e) {
+                throw new ContainerManagerBeanException("Cannot get the connector template file !");
+            }
+
+
+            // Create the REST request
+            String connectorFileName = connectorName + ".xml";
+
+            Task task = sendDeployRequestWithReply(agent.getApiUrl(), containerName, connectorFileName,
+                    connectorConfiguration.getBytes());
+
+            // Wait until async task is completed
+            waitUntilAsyncTaskIsCompleted(task, agent.getApiUrl());
+
+            // check that the status of the application is DEPLOYED
+            App app = sendRequestWithReply(
+                    REST_TYPE.GET,
+                    getUrl(agent.getApiUrl(), CONTEXT + "/server/" + containerName + "/app/" + connectorFileName),
+                    null,
+                    App.class);
+
+            srJonasContainerEjb.addConnector(jonasContainer.getId(), connectorName, port);
+
+            logger.info("Connector '" + app.getName() + "' deployed. Status=" + app.getStatus());
         }
 
-        //Use the connector Template
-        String connectorConfiguration = null;
-        URL connectorTemplateURL = this.getClass().getClassLoader().getResource("connector-template.xml");
-        try {
-            String connectorTemplate = convertUrlToString(connectorTemplateURL);
-            // Replace the template ports
-            connectorConfiguration = connectorTemplate.replaceAll("\\$\\{port\\}", port.toString());
-            connectorConfiguration = connectorConfiguration.replaceAll("\\$\\{redirectPort\\}",
-                    redirectPort.toString());
-        } catch (IOException e) {
-            throw new ContainerManagerBeanException("Cannot get the connector template file !");
-        }
-
-
-        // Create the REST request
-        String connectorFileName = connectorName + ".xml";
-
-        Task task = sendDeployRequestWithReply(agent.getApiUrl(), containerName, connectorFileName,
-                connectorConfiguration.getBytes());
-
-        // Wait until async task is completed
-        waitUntilAsyncTaskIsCompleted(task, agent.getApiUrl());
-
-        // check that the status of the application is DEPLOYED
-        App app = sendRequestWithReply(
-                REST_TYPE.GET,
-                getUrl(agent.getApiUrl(), CONTEXT + "/server/" + containerName + "/app/" + connectorFileName),
-                null,
-                App.class);
-
-        srJonasContainerEjb.addConnector(jonasContainer.getId(), connectorName, port);
-
-        logger.info("Connector '" + app.getName() + "' deployed. Status=" + app.getStatus());
     }
 
     /**
