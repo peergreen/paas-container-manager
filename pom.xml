@@ -55,6 +55,11 @@
     </license>
   </licenses>
 
+  <scm>
+    <connection>scm:git:git://gitorious.ow2.org/ow2-jasmine/jpaas-container-manager.git</connection>
+    <developerConnection>scm:git:git@gitorious.ow2.org:ow2-jasmine/jpaas-container-manager.git</developerConnection>
+    <url>http://gitorious.ow2.org/ow2-jasmine/jpaas-container-manager/trees/master</url>
+  </scm>
   <modules>
     <module>ejb</module>
   </modules>
