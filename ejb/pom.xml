@@ -1,36 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-  - JPaaS
-  - Copyright (C) 2011-2012 Bull S.A.S.
-  - Contact: jonas@ow2.org
-  -
-  - Licensed under the Apache License, Version 2.0 (the "License");
-  - you may not use this file except in compliance with the License.
-  - You may obtain a copy of the License at
-  - 
-  -     http://www.apache.org/licenses/LICENSE-2.0
-  - 
-  - Unless required by applicable law or agreed to in writing, software
-  - distributed under the License is distributed on an "AS IS" BASIS,
-  - WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  - See the License for the specific language governing permissions and
-  - limitations under the License.
-  -
-  - $Id:$
--->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <parent>
-    <groupId>org.ow2.jonas.jpaas</groupId>
-    <artifactId>jpaas-container-manager</artifactId>
-    <version>1.0.0-M2-SNAPSHOT</version>
+    <groupId>com.peergreen.paas</groupId>
+    <artifactId>paas-container-manager</artifactId>
+    <version>1.0.0-M1-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
-
-  <artifactId>container-manager-ejb</artifactId>
-  <name>JPaaS :: Container Manager : EJB</name>
+  <artifactId>paas-container-manager-ejb</artifactId>
   <packaging>bundle</packaging>
 
-  <description>jPaaS :: Container Manager : EJB</description>
+  <name>PG PaaS :: Container Manager :: EJB</name>
 
   <dependencies>
     <dependency>
@@ -64,55 +44,26 @@
       <version>${jersey.rest.client}</version>
     </dependency>
     <dependency>
-      <groupId>org.ow2.jonas.jpaas.catalog</groupId>
-      <artifactId>jpaas-catalog-api</artifactId>
-      <version>${jpaas.catalog.version}</version>
+      <groupId>com.peergreen.paas</groupId>
+      <artifactId>paas-catalog-api</artifactId>
+      <version>${paas-catalog.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.ow2.jonas.jpaas.system-representation</groupId>
-      <artifactId>system-representation-vo</artifactId>
-      <version>${jpaas.sr.version}</version>
+      <groupId>com.peergreen.paas</groupId>
+      <artifactId>paas-system-representation-vo</artifactId>
+      <version>${paas-sr.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.ow2.jonas.jpaas.system-representation</groupId>
-      <artifactId>system-representation-ejb</artifactId>
-      <version>${jpaas.sr.version}</version>
+      <groupId>com.peergreen.paas</groupId>
+      <artifactId>paas-system-representation-ejb</artifactId>
+      <version>${paas-sr.version}</version>
     </dependency>
     <dependency>
       <groupId>org.ow2.easybeans.osgi</groupId>
       <artifactId>easybeans-osgi-annotations</artifactId>
-      <version>${easybeans.annotations.version}</version>
+      <version>${easybeans.version}</version>
     </dependency>
 
   </dependencies>
-
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>2.3.2</version>
-        <configuration>
-          <source>1.6</source>
-          <target>1.6</target>
-        </configuration>
-      </plugin>
-
-      <plugin>
-        <groupId>org.apache.felix</groupId>
-        <artifactId>maven-bundle-plugin</artifactId>
-        <version>2.2.0</version>
-        <extensions>true</extensions>
-        <goals>
-          <goal>bundle</goal>
-        </goals>
-        <configuration>
-          <instructions>
-            <_include>-target/classes/META-INF/${project.artifactId}.bnd</_include>
-          </instructions>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
 
 </project>
