@@ -13,22 +13,23 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * 
+ *
  * $Id:$
- */ 
+ */
 package org.ow2.jonas.jpaas.container.manager.bean;
 
 import org.ow2.jonas.agent.management.api.xml.App;
 import org.ow2.jonas.jpaas.catalog.api.PaasCatalogException;
 import org.ow2.jonas.jpaas.container.manager.api.ContainerManager;
 import org.ow2.jonas.jpaas.container.manager.api.ContainerManagerBeanException;
-
 import org.ow2.easybeans.osgi.annotation.OSGiResource;
 import org.ow2.jonas.jpaas.catalog.api.IPaasCatalogFacade;
 import org.ow2.jonas.jpaas.catalog.api.PaasConfiguration;
 import org.ow2.jonas.jpaas.sr.facade.api.ISrPaasAgentIaasComputeLink;
+import org.ow2.jonas.jpaas.sr.facade.api.ISrPaasContainerFacade;
 import org.ow2.jonas.jpaas.sr.facade.api.ISrPaasJonasContainerFacade;
 import org.ow2.jonas.jpaas.sr.facade.api.ISrPaasAgentFacade;
+import org.ow2.jonas.jpaas.sr.facade.api.ISrPaasPeergreenServerContainerFacade;
 import org.ow2.jonas.jpaas.sr.facade.api.ISrPaasResourceIaasComputeLink;
 import org.ow2.jonas.jpaas.sr.facade.api.ISrPaasResourcePaasAgentLink;
 import org.ow2.jonas.jpaas.sr.facade.vo.ConnectorVO;
@@ -123,10 +124,24 @@ public class ContainerManagerBean implements ContainerManager {
     private IPaasCatalogFacade catalogEjb;
 
     /**
+     * SR facade container
+     */
+    @OSGiResource
+    private ISrPaasContainerFacade srPaaSContainerEjb;
+
+
+    /**
      * SR facade jonas container
      */
     @OSGiResource
     private ISrPaasJonasContainerFacade srJonasContainerEjb;
+
+    /**
+     * SR facade Peergreen container
+     */
+    @OSGiResource
+    private ISrPaasPeergreenServerContainerFacade srPeergreenServerContainerEjb;
+
 
     /**
      * SR facade agent
@@ -691,7 +706,7 @@ public class ContainerManagerBean implements ContainerManager {
                     null,
                     App.class);
 
-            srJonasContainerEjb.addConnector(jonasContainer.getId(), connectorName, port);
+            srPaaSContainerEjb.addConnector(jonasContainer.getId(), connectorName, port);
 
             logger.info("Connector '" + app.getName() + "' deployed. Status=" + app.getStatus());
         }
@@ -747,7 +762,7 @@ public class ContainerManagerBean implements ContainerManager {
                 null,
                 App.class);
 
-        srJonasContainerEjb.removeConnector(jonasContainer.getId(), connectorName);
+        srPaaSContainerEjb.removeConnector(jonasContainer.getId(), connectorName);
 
         logger.info("Connector '" + app.getName() + "' undeployed. Status=" + app.getStatus());
     }
