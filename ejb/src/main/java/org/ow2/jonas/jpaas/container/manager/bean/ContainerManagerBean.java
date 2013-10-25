@@ -37,6 +37,7 @@ import org.ow2.jonas.jpaas.sr.facade.vo.IaasComputeVO;
 import org.ow2.jonas.jpaas.sr.facade.vo.JonasVO;
 import org.ow2.jonas.jpaas.sr.facade.vo.PaasAgentVO;
 import org.ow2.jonas.jpaas.sr.facade.vo.PaasResourceVO;
+import org.ow2.jonas.jpaas.sr.facade.vo.PeergreenServerVO;
 
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
@@ -102,7 +103,14 @@ public class ContainerManagerBean implements ContainerManager {
     /**
      * Expected paas subtype
      */
-    private static final String PAAS_SUB_TYPE = "jonas";
+    private static final String PAAS_JONAS_SUB_TYPE = "jonas";
+
+    /**
+     * Expected paas subtype
+     */
+    private static final String PAAS_PGSERVER_SUB_TYPE = "peergreen";
+
+
 
     /**
      * Sleeping period for async operation
@@ -216,20 +224,40 @@ public class ContainerManagerBean implements ContainerManager {
                     + containerConf.getType().equals(PAAS_TYPE) + " - expected : "
                     + PAAS_TYPE);
         }
-        if (!containerConf.getSubType().equals(PAAS_SUB_TYPE)) {
+
+        String subType = containerConf.getSubType();
+
+        if (!PAAS_JONAS_SUB_TYPE.equals(subType) ||!PAAS_PGSERVER_SUB_TYPE.equals(subType)) {
             throw new ContainerManagerBeanException("Invalid paas sub type : "
-                    + containerConf.getType().equals(PAAS_SUB_TYPE) + " - expected : "
-                    + PAAS_SUB_TYPE);
+                    + containerConf.getSubType() + " - expected : "
+                    + PAAS_JONAS_SUB_TYPE + " or " + PAAS_PGSERVER_SUB_TYPE);
         }
 
-        // Create the container in the SR
-        List<JonasVO> jonasVOList = srJonasContainerEjb.findJonasContainers();
-        for (JonasVO tmp : jonasVOList) {
-            if (tmp.getName().equals(containerName)) {
-                throw new ContainerManagerBeanException("JOnAS container '" + containerName + "' already exist!");
-            }
+        // JOnAS
+        if (PAAS_JONAS_SUB_TYPE.equals(subType)) {
+            createJOnASContainer(containerName, containerConf, agent);
+        } else if (PAAS_PGSERVER_SUB_TYPE.equals(subType)) {
+            // Peergreen
+            createPeergreenServerContainer(containerName, containerConf, agent);
         }
-        JonasVO jonasContainer = new JonasVO();
+
+    }
+
+    protected void createPeergreenServerContainer(String containerName, PaasConfiguration containerConf, PaasAgentVO agent) throws ContainerManagerBeanException {
+        // FIXME : Needs to be implemented
+
+    }
+
+
+
+    protected void createJOnASContainer(String containerName, PaasConfiguration containerConf, PaasAgentVO agent) throws ContainerManagerBeanException {
+
+        // Create the container in the SR
+        JonasVO jonasContainer = srJonasContainerEjb.findJonasContainer(containerName);
+        if (jonasContainer != null) {
+            throw new ContainerManagerBeanException("JOnAS container '" + containerName + "' already exist!");
+        }
+        jonasContainer = new JonasVO();
         jonasContainer.setName(containerName);
         jonasContainer.setState("Init");
         jonasContainer.setProfile(containerConf.getName());
@@ -242,7 +270,7 @@ public class ContainerManagerBean implements ContainerManager {
             if (paasResourceVO instanceof JonasVO) {
                 JonasVO jonasResourceVO = (JonasVO) paasResourceVO;
                 if (jonasResourceVO.getId().equals(jonasContainer.getId())) {
-                    logger.debug("Link between container '"  + containerName + "' and agent '" + paasAgentName +
+                    logger.debug("Link between container '"  + containerName + "' and agent '" + agent.getName() +
                             "' already exist!");
                     alreadyExist = true;
                     break;
@@ -267,7 +295,7 @@ public class ContainerManagerBean implements ContainerManager {
             topology = getTopologyFromFile(containerConf.getSpecificConfig());
         } catch (Exception e) {
             throw new ContainerManagerBeanException("Error when reading JOnAS topology file '" +
-                    containerConf.getSpecificConfig() + "' for paas conf '" + paasConfigurationName +"' - e=" + e);
+                    containerConf.getSpecificConfig() + "' for paas conf '" + containerConf.getName() +"' - e=" + e);
         }
 
         // Replace the server name
@@ -293,10 +321,10 @@ public class ContainerManagerBean implements ContainerManager {
         // update state in sr
         jonasContainer.setState(server.getStatus());
         srJonasContainerEjb.updateJonasContainer(jonasContainer);
-
         logger.info("Container '" + server.getName() + "' created. Status=" + server.getStatus());
 
     }
+
 
     /**
      * Remove a JOnAS container
@@ -310,23 +338,32 @@ public class ContainerManagerBean implements ContainerManager {
         logger.info("Container '" + containerName + "' deleting ....");
 
         // get the container from SR
-        JonasVO jonasContainer = null;
-        List<JonasVO> jonasVOList = srJonasContainerEjb.findJonasContainers();
-        for (JonasVO tmp : jonasVOList) {
-            if (tmp.getName().equals(containerName)) {
-                jonasContainer = tmp;
-                break;
+        JonasVO jonasContainerVO = srJonasContainerEjb.findJonasContainer(containerName);
+
+        // JOnAS container
+        if (jonasContainerVO != null) {
+            removeJOnASContainer(containerName, jonasContainerVO);
+        } else {
+            PeergreenServerVO peergreenServerVO = srPeergreenServerContainerEjb.findPeergreenServerContainer(containerName);
+            if (peergreenServerVO != null) {
+                removePeergreenServerContainer(containerName, peergreenServerVO);
+            } else {
+                throw new ContainerManagerBeanException("The container '" + containerName + "' doesn't exist !");
             }
         }
-        if (jonasContainer == null) {
-            throw new ContainerManagerBeanException("JOnAS container '" + containerName + "' doesn't exist !");
-        }
+    }
 
-        jonasContainer.setState("DELETING");
-        srJonasContainerEjb.updateJonasContainer(jonasContainer);
+    protected void removePeergreenServerContainer(String containerName, PeergreenServerVO peergreenServerVO) throws ContainerManagerBeanException {
+        //FIXME: implements this
+    }
+
+    protected void removeJOnASContainer(String containerName, JonasVO jonasContainerVO) throws ContainerManagerBeanException {
+
+        jonasContainerVO.setState("DELETING");
+        srJonasContainerEjb.updateJonasContainer(jonasContainerVO);
 
         // Get the agent
-        PaasAgentVO agent = srJonasAgentLinkEjb.findAgentByPaasResource(jonasContainer.getId());
+        PaasAgentVO agent = srJonasAgentLinkEjb.findAgentByPaasResource(jonasContainerVO.getId());
 
         if (agent == null) {
             throw new ContainerManagerBeanException("Unable to get the agent for container '" + containerName + "' !");
@@ -342,17 +379,17 @@ public class ContainerManagerBean implements ContainerManager {
 
         // update state in sr
         //remove container - iaasCompute link
-        IaasComputeVO iaasCompute = srPaasResourceIaasComputeLink.findIaasComputeByPaasResource(jonasContainer.getId());
+        IaasComputeVO iaasCompute = srPaasResourceIaasComputeLink.findIaasComputeByPaasResource(jonasContainerVO.getId());
         if (iaasCompute != null) {
-            srPaasResourceIaasComputeLink.removePaasResourceIaasComputeLink(jonasContainer.getId(),
+            srPaasResourceIaasComputeLink.removePaasResourceIaasComputeLink(jonasContainerVO.getId(),
                     iaasCompute.getId());
         }
         //delete jonas container in SR
-        srJonasContainerEjb.deleteJonasContainer(jonasContainer.getId());
+        srJonasContainerEjb.deleteJonasContainer(jonasContainerVO.getId());
 
         logger.info("Container '" + containerName + "' deleted.");
-
     }
+
 
     /**
      * Start a JOnAS container
@@ -366,17 +403,27 @@ public class ContainerManagerBean implements ContainerManager {
         logger.info("Container '" + containerName + "' starting ....");
 
         // get the container from SR
-        JonasVO jonasContainer = null;
-        List<JonasVO> jonasVOList = srJonasContainerEjb.findJonasContainers();
-        for (JonasVO tmp : jonasVOList) {
-            if (tmp.getName().equals(containerName)) {
-                jonasContainer = tmp;
-                break;
+        JonasVO jonasContainerVO = srJonasContainerEjb.findJonasContainer(containerName);
+
+        // JOnAS container
+        if (jonasContainerVO != null) {
+            startJOnASContainer(containerName, jonasContainerVO);
+        } else {
+            PeergreenServerVO peergreenServerVO = srPeergreenServerContainerEjb.findPeergreenServerContainer(containerName);
+            if (peergreenServerVO != null) {
+                startPeergreenServerContainer(containerName, peergreenServerVO);
+            } else {
+                throw new ContainerManagerBeanException("The container '" + containerName + "' doesn't exist !");
             }
         }
-        if (jonasContainer == null) {
-            throw new ContainerManagerBeanException("JOnAS container '" + containerName + "' doesn't exist !");
-        }
+
+    }
+
+    protected void startPeergreenServerContainer(String containerName, PeergreenServerVO peergreenServerVO) throws ContainerManagerBeanException {
+        //FIXME : implements
+    }
+
+    protected void startJOnASContainer(String containerName, JonasVO jonasContainer) throws ContainerManagerBeanException {
 
         jonasContainer.setState("STARTING");
         srJonasContainerEjb.updateJonasContainer(jonasContainer);
@@ -424,18 +471,29 @@ public class ContainerManagerBean implements ContainerManager {
 
         logger.info("Container '" + containerName + "' stopping ....");
 
-        // Get the container from SR
-        JonasVO jonasContainer = null;
-        List<JonasVO> jonasVOList = srJonasContainerEjb.findJonasContainers();
-        for (JonasVO tmp : jonasVOList) {
-            if (tmp.getName().equals(containerName)) {
-                jonasContainer = tmp;
-                break;
+        // get the container from SR
+        JonasVO jonasContainerVO = srJonasContainerEjb.findJonasContainer(containerName);
+
+        // JOnAS container
+        if (jonasContainerVO != null) {
+            stopJOnASContainer(containerName, jonasContainerVO);
+        } else {
+            PeergreenServerVO peergreenServerVO = srPeergreenServerContainerEjb.findPeergreenServerContainer(containerName);
+            if (peergreenServerVO != null) {
+                stopPeergreenServerContainer(containerName, peergreenServerVO);
+            } else {
+                throw new ContainerManagerBeanException("The container '" + containerName + "' doesn't exist !");
             }
         }
-        if (jonasContainer == null) {
-            throw new ContainerManagerBeanException("JOnAS container '" + containerName + "' doesn't exist !");
-        }
+
+    }
+
+    protected void stopPeergreenServerContainer(String containerName, PeergreenServerVO peergreenServerVO) throws ContainerManagerBeanException {
+
+    }
+
+
+    protected void stopJOnASContainer(String containerName, JonasVO jonasContainer) throws ContainerManagerBeanException {
 
         jonasContainer.setState("STOPPING");
         srJonasContainerEjb.updateJonasContainer(jonasContainer);
@@ -482,14 +540,7 @@ public class ContainerManagerBean implements ContainerManager {
         logger.info("Deploying application '" + deployable.toString() + "' on container " + containerName + " ....");
 
         // get the container from SR
-        JonasVO jonasContainer = null;
-        List<JonasVO> jonasVOList = srJonasContainerEjb.findJonasContainers();
-        for (JonasVO tmp : jonasVOList) {
-            if (tmp.getName().equals(containerName)) {
-                jonasContainer = tmp;
-                break;
-            }
-        }
+        JonasVO jonasContainer = srJonasContainerEjb.findJonasContainer(containerName);
         if (jonasContainer == null) {
             throw new ContainerManagerBeanException("JOnAS container '" + containerName + "' doesn't exist !");
         }
@@ -588,14 +639,8 @@ public class ContainerManagerBean implements ContainerManager {
         logger.info("Undeploying application '" + deployable.toString() + "' on container " + containerName + " ....");
 
         // Get the container from SR
-        JonasVO jonasContainer = null;
-        List<JonasVO> jonasVOList = srJonasContainerEjb.findJonasContainers();
-        for (JonasVO tmp : jonasVOList) {
-            if (tmp.getName().equals(containerName)) {
-                jonasContainer = tmp;
-                break;
-            }
-        }
+        JonasVO jonasContainer = srJonasContainerEjb.findJonasContainer(containerName);
+
         if (jonasContainer == null) {
             throw new ContainerManagerBeanException("JOnAS container '" + containerName + "' doesn't exist !");
         }
@@ -647,14 +692,7 @@ public class ContainerManagerBean implements ContainerManager {
         Integer redirectPort = 9043;
         System.out.println("JPAAS-CONTAINER-MANAGER / createConnector called");
         // get the container from SR
-        JonasVO jonasContainer = null;
-        List<JonasVO> jonasVOList = srJonasContainerEjb.findJonasContainers();
-        for (JonasVO tmp : jonasVOList) {
-            if (tmp.getName().equals(containerName)) {
-                jonasContainer = tmp;
-                break;
-            }
-        }
+        JonasVO jonasContainer = srJonasContainerEjb.findJonasContainer(containerName);
         if (jonasContainer == null) {
             throw new ContainerManagerBeanException("JOnAS container '" + containerName + "' doesn't exist !");
         }
@@ -726,14 +764,8 @@ public class ContainerManagerBean implements ContainerManager {
         System.out.println("JPAAS-CONTAINER-MANAGER / removeConnector called");
 
         // Get the container from SR
-        JonasVO jonasContainer = null;
-        List<JonasVO> jonasVOList = srJonasContainerEjb.findJonasContainers();
-        for (JonasVO tmp : jonasVOList) {
-            if (tmp.getName().equals(containerName)) {
-                jonasContainer = tmp;
-                break;
-            }
-        }
+        JonasVO jonasContainer = srJonasContainerEjb.findJonasContainer(containerName);
+
         if (jonasContainer == null) {
             throw new ContainerManagerBeanException("JOnAS container '" + containerName + "' doesn't exist !");
         }
@@ -978,4 +1010,4 @@ public class ContainerManagerBean implements ContainerManager {
         return sb.toString();
     }
 }
- 
+

@@ -50,6 +50,11 @@
     </dependency>
     <dependency>
       <groupId>com.peergreen.paas</groupId>
+      <artifactId>paas-system-representation-api</artifactId>
+      <version>${paas-sr.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.peergreen.paas</groupId>
       <artifactId>paas-system-representation-vo</artifactId>
       <version>${paas-sr.version}</version>
     </dependency>
